@@ -1,0 +1,33 @@
+services:
+  work-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: my-work-manager
+    ports:
+      - "2999:2999"
+    volumes:
+      # Mount config file so you can edit it without rebuilding
+      - ./config.json:/app/config.json
+      # Mount data directory to persist secrets and attachments
+      - ./data:/app/data
+      # Mount kubectl config for Kubernetes access
+      - ${HOME}/.kube:/home/nextjs/.kube:ro
+      # Mount gcloud config for GCloud access
+      - ${HOME}/.config/gcloud:/home/nextjs/.config/gcloud:ro
+    environment:
+      - NODE_ENV=production
+      - PORT=2999
+      # Set gcloud/kubectl environment variables
+      - KUBECONFIG=/home/nextjs/.kube/config
+      - CLOUDSDK_CONFIG=/home/nextjs/.config/gcloud
+      # Optional: Set GITHUB_TOKEN for private repos and higher API rate limits
+      # Get token from: https://github.com/settings/tokens
+      # - GITHUB_TOKEN=${GITHUB_TOKEN}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:2999', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s

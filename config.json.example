@@ -1,0 +1,54 @@
+{
+  "app": {
+    "name": "My Work Manager",
+    "port": 2999,
+    "description": "Jira Work Manager Dashboard"
+  },
+  "jira": {
+    "baseUrl": "https://your-domain.atlassian.net",
+    "email": "your-email@example.com",
+    "apiToken": "YOUR_JIRA_API_TOKEN_HERE",
+    "defaultProject": "YOUR_PROJECT_KEY"
+  },
+  "github": {
+    "token": "YOUR_GITHUB_TOKEN_HERE",
+    "repository": "OWNER/REPO_NAME"
+  },
+  "ai": {
+    "provider": "claude",
+    "apiKey": "YOUR_AI_API_KEY_HERE",
+    "model": "claude-sonnet-4-5",
+    "baseUrl": "https://your-llm-proxy.example.com",
+    "enabled": true
+  },
+  "storage": {
+    "encryptionKey": "AUTO_GENERATED_ON_FIRST_RUN",
+    "dataPath": "./data",
+    "attachmentsPath": "./data/attachments",
+    "secretsPath": "./data/secrets"
+  },
+  "features": {
+    "aiTextEnhancement": true,
+    "imageUpload": true,
+    "autoTransitionToInProgress": true,
+    "maxAttachmentSizeMB": 10
+  },
+  "confluence": {
+    "baseUrl": "https://your-domain.atlassian.net/wiki",
+    "email": "your-email@example.com",
+    "token": "YOUR_CONFLUENCE_TOKEN_HERE"
+  },
+  "theme": {
+    "primaryColor": "#FFFFFF",
+    "secondaryColor": "#000000"
+  },
+  "kafka": {
+    "bootstrapServers": "your-kafka-server.example.com:9092",
+    "apiKey": "YOUR_KAFKA_API_KEY",
+    "apiSecret": "YOUR_KAFKA_API_SECRET"
+  },
+  "docker": {
+    "kafkaComposePath": "/path/to/your/kafka-docker-compose.yml",
+    "observabilityComposePath": "/path/to/your/observability-docker-compose.yml"
+  }
+}
