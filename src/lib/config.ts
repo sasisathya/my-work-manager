@@ -86,6 +86,15 @@ export function loadConfig(): AppConfig {
   return cachedConfig!;
 }
 
+// Safe version that doesn't throw
+export function loadConfigSafe(): AppConfig | null {
+  try {
+    return loadConfig();
+  } catch (error) {
+    return null;
+  }
+}
+
 function generateEncryptionKey(): string {
   const crypto = require('crypto');
   return crypto.randomBytes(32).toString('hex');

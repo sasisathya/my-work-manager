@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { JiraIssue } from '@/types/jira';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, CheckCircle2, Clock, AlertCircle, TrendingUp, Zap, ArrowLeft } from 'lucide-react';
+import SetupRequired from '@/components/SetupRequired';
 
 // Dynamic import for IssueCard - reduces initial bundle size
 const IssueCard = dynamic(() => import('@/components/IssueCard').then(mod => ({ default: mod.IssueCard })), {
@@ -23,10 +24,34 @@ export default function JiraPage() {
   const [issues, setIssues] = useState<JiraIssue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [configExists, setConfigExists] = useState<boolean | null>(null);
 
   useEffect(() => {
-    fetchIssues();
+    checkConfig();
   }, []);
+
+  const checkConfig = async () => {
+    try {
+      const response = await fetch('/api/config/check');
+      const data = await response.json();
+      setConfigExists(data.configured);
+
+      if (data.configured) {
+        fetchIssues();
+      } else {
+        setLoading(false);
+      }
+    } catch (err) {
+      setConfigExists(false);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (configExists) {
+      fetchIssues();
+    }
+  }, [configExists]);
 
   const fetchIssues = async () => {
     setLoading(true);
@@ -56,6 +81,17 @@ export default function JiraPage() {
         i.fields.status.name.toLowerCase().includes('open')
     ).length,
   };
+
+  // Show setup required if config doesn't exist
+  if (configExists === false) {
+    return (
+      <SetupRequired
+        title="Jira Configuration Required"
+        message="To use the Jira integration, you need to configure your Jira credentials first."
+        feature="Jira integration"
+      />
+    );
+  }
 
   return (
     <div className="space-y-8">

@@ -17,6 +17,7 @@ import {
   Package,
   Database
 } from 'lucide-react';
+import SetupRequired from '@/components/SetupRequired';
 
 interface DockerImage {
   repository: string;
@@ -95,12 +96,27 @@ export default function DockerKafkaPage() {
   const [logs, setLogs] = useState<string[]>([]);
   const [serviceStatus, setServiceStatus] = useState<Record<string, boolean>>({});
   const [services, setServices] = useState<DockerService[]>([]);
+  const [configExists, setConfigExists] = useState<boolean | null>(null);
 
   useEffect(() => {
-    loadServices();
-    fetchDockerImages();
-    fetchDockerContainers();
+    checkConfig();
   }, []);
+
+  const checkConfig = async () => {
+    try {
+      const response = await fetch('/api/config/check');
+      const data = await response.json();
+      setConfigExists(data.configured);
+
+      if (data.configured) {
+        loadServices();
+        fetchDockerImages();
+        fetchDockerContainers();
+      }
+    } catch (err) {
+      setConfigExists(false);
+    }
+  };
 
   useEffect(() => {
     checkServiceStatus();
@@ -375,6 +391,17 @@ export default function DockerKafkaPage() {
     fetchDockerContainers();
     addLog('Refreshed all Docker data');
   };
+
+  // Show setup required if config doesn't exist
+  if (configExists === false) {
+    return (
+      <SetupRequired
+        title="Docker Configuration Required"
+        message="To manage Docker services, you need to configure your Docker compose file paths in settings."
+        feature="Docker & Kafka management"
+      />
+    );
+  }
 
   return (
     <div className="space-y-8">

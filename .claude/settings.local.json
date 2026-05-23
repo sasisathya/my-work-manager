@@ -55,7 +55,9 @@
       "Bash(gh auth:*)",
       "Bash(gh repo delete:*)",
       "Bash(git rev-parse:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(gh repo create:*)",
+      "Bash(gh config set:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +27,7 @@ import {
   Minus,
   FileQuestion
 } from 'lucide-react';
+import SetupRequired from '@/components/SetupRequired';
 
 interface ReviewCheck {
   id: string;
@@ -42,6 +43,21 @@ export default function PRReviewPage() {
   const [reviewResults, setReviewResults] = useState<any>(null);
   const [selectedIssues, setSelectedIssues] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
+  const [configExists, setConfigExists] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    checkConfig();
+  }, []);
+
+  const checkConfig = async () => {
+    try {
+      const response = await fetch('/api/config/check');
+      const data = await response.json();
+      setConfigExists(data.configured);
+    } catch (err) {
+      setConfigExists(false);
+    }
+  };
 
   const [checks, setChecks] = useState<ReviewCheck[]>([
     {
@@ -387,6 +403,17 @@ export default function PRReviewPage() {
       alert(error.message || 'Failed to add comment to GitHub');
     }
   };
+
+  // Show setup required if config doesn't exist
+  if (configExists === false) {
+    return (
+      <SetupRequired
+        title="GitHub Configuration Required"
+        message="To use the PR Review feature, you need to configure your GitHub credentials and AI settings first."
+        feature="GitHub PR Review"
+      />
+    );
+  }
 
   return (
     <div className="space-y-8">
