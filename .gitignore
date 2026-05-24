@@ -44,3 +44,5 @@ config.local.json
 .env
 .env.local
 .env.*.local
+.npmrc
+package-lock.json
