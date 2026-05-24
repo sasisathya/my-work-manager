@@ -22,7 +22,7 @@ interface Transition {
   };
 }
 
-export function IssueCard({ issue, onUpdate }: IssueCardProps) {
+export const IssueCard = React.memo(function IssueCard({ issue, onUpdate }: IssueCardProps) {
   const [comment, setComment] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -372,4 +372,4 @@ export function IssueCard({ issue, onUpdate }: IssueCardProps) {
       </CardContent>
     </Card>
   );
-}
+});

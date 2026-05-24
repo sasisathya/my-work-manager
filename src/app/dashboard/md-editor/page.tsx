@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,8 +27,6 @@ import {
   X,
   Clock,
   ChevronLeft,
-  ChevronRight as ChevronRightIcon,
-  MessageSquare,
 } from 'lucide-react';
 
 // Enhanced markdown renderer
@@ -169,6 +167,9 @@ export default function MDEditorPage() {
   const [chatMinimized, setChatMinimized] = useState(false);
   const [contentType, setContentType] = useState<'markdown' | 'html'>('markdown');
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Memoize markdown rendering to prevent recalculation on every render
+  const renderedMarkdown = useMemo(() => renderMarkdown(fileContent), [fileContent]);
 
   // Auto-scroll to bottom of chat
   useEffect(() => {
@@ -919,7 +920,7 @@ export default function MDEditorPage() {
                     `}</style>
                     <div
                       dangerouslySetInnerHTML={{
-                        __html: renderMarkdown(fileContent),
+                        __html: renderedMarkdown,
                       }}
                     />
                   </div>
