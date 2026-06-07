@@ -7,7 +7,8 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { getStatusColor, getPriorityColor, formatDateTime } from '@/lib/utils';
-import { Upload, Send, Sparkles, FileText, Loader2, ArrowRight, List, Minimize2, Maximize2, GitPullRequest, ExternalLink } from 'lucide-react';
+import { Upload, Send, Sparkles, FileText, Loader2, ArrowRight, List, Minimize2, Maximize2, GitPullRequest, ExternalLink, Plus } from 'lucide-react';
+import { CreateSubtaskModal } from './CreateSubtaskModal';
 
 interface IssueCardProps {
   issue: JiraIssue;
@@ -31,6 +32,7 @@ export const IssueCard = React.memo(function IssueCard({ issue, onUpdate }: Issu
   const [loadingTransitions, setLoadingTransitions] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [pr, setPr] = useState<{ number: number; title: string; url: string; state: string } | null>(null);
+  const [showSubtaskModal, setShowSubtaskModal] = useState(false);
 
   // Fetch available transitions and PR on mount
   useEffect(() => {
@@ -334,6 +336,17 @@ export const IssueCard = React.memo(function IssueCard({ issue, onUpdate }: Issu
               Expand
             </Button>
 
+            <Button
+              onClick={() => setShowSubtaskModal(true)}
+              className="glass-button rounded-xl text-sm"
+              size="sm"
+              variant="outline"
+              title="Create a subtask"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Subtask
+            </Button>
+
             <div className="flex-1" />
 
             <label className="cursor-pointer">
@@ -370,6 +383,13 @@ export const IssueCard = React.memo(function IssueCard({ issue, onUpdate }: Issu
           )}
         </div>
       </CardContent>
+
+      <CreateSubtaskModal
+        parentIssueKey={issue.key}
+        open={showSubtaskModal}
+        onOpenChange={setShowSubtaskModal}
+        onSuccess={onUpdate}
+      />
     </Card>
   );
 });

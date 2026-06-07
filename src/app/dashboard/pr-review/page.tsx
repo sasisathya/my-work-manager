@@ -317,7 +317,7 @@ export default function PRReviewPage() {
 
   const selectAllIssues = () => {
     if (!reviewResults?.results?.issues) return;
-    const allIndices = new Set(reviewResults.results.issues.map((_: any, idx: number) => idx));
+    const allIndices = new Set<number>(reviewResults.results.issues.map((_: any, idx: number) => idx));
     setSelectedIssues(allIndices);
   };
 

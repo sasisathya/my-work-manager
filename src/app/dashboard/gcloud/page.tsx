@@ -493,8 +493,8 @@ export default function GCloudPage() {
       totalMatches: logSearchResults.reduce((sum, r) => sum + r.matchCount, 0),
       results: logSearchResults.map(result => {
         // Parse log lines into structured JSON objects
-        const logLines = (result.logs || '').split('\n').filter(line => line.trim());
-        const parsedLogs = logLines.map(line => {
+        const logLines = (result.logs || '').split('\n').filter((line: string) => line.trim());
+        const parsedLogs = logLines.map((line: string) => {
           try {
             // Try to parse as JSON
             const jsonMatch = line.match(/\{.*\}/);
@@ -1198,7 +1198,7 @@ export default function GCloudPage() {
                         const logs = result.logs || '';
                         const logLines = logs.split('\n');
                         const filteredLines = resultFilter
-                          ? logLines.filter(line =>
+                          ? logLines.filter((line: string) =>
                               line.toLowerCase().includes(resultFilter.toLowerCase())
                             )
                           : logLines;
@@ -1240,7 +1240,7 @@ export default function GCloudPage() {
                             {/* Log Lines */}
                             <div className="p-4 bg-gray-950 max-h-96 overflow-y-auto">
                               <div className="space-y-2">
-                                {filteredLines.map((line, lineIndex) => {
+                                {filteredLines.map((line: string, lineIndex: number) => {
                                   const parsed = parseLogLine(line);
                                   return (
                                     <div key={lineIndex} className="group">

@@ -140,6 +140,49 @@ export class JiraService {
 
     return inProgressTransition?.id || null;
   }
+
+  async createSubtask(parentIssueKey: string, summary: string, description: string = ''): Promise<any> {
+    try {
+      const payload: any = {
+        fields: {
+          project: {
+            key: parentIssueKey.split('-')[0], // Extract project key from issue key
+          },
+          summary: summary,
+          issuetype: {
+            name: 'Subtask',
+          },
+          parent: {
+            key: parentIssueKey,
+          },
+        },
+      };
+
+      if (description) {
+        payload.fields.description = {
+          type: 'doc',
+          version: 1,
+          content: [
+            {
+              type: 'paragraph',
+              content: [
+                {
+                  type: 'text',
+                  text: description,
+                },
+              ],
+            },
+          ],
+        };
+      }
+
+      const response = await this.client.post('/issue', payload);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error creating subtask:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.errorMessages?.[0] || 'Failed to create subtask');
+    }
+  }
 }
 
 export const jiraService = new JiraService();
