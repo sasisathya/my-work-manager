@@ -2,6 +2,14 @@ import axios, { AxiosInstance } from 'axios';
 import { getConfig } from './config';
 import { JiraIssue, JiraTransition, JiraComment } from '@/types/jira';
 
+// Mapping of parent issue types to their allowed subtask types
+const PARENT_TYPE_TO_SUBTASK_TYPE: { [key: string]: string } = {
+  'Story': 'Sub-task',
+  'Defect': 'Sub-task',
+  // Add more mappings as discovered by the user
+  // Example: 'Task': 'Sub-task', 'Bug': 'Sub-task', 'Epic': 'Epic Task'
+};
+
 export class JiraService {
   private client: AxiosInstance;
   private baseUrl: string;
@@ -143,15 +151,57 @@ export class JiraService {
 
   async createSubtask(parentIssueKey: string, summary: string, description: string = ''): Promise<any> {
     try {
+      // First, fetch the parent issue to get the project key and issue type
+      const parentIssue = await this.getIssue(parentIssueKey);
+      const projectKey = parentIssue.fields.project.key;
+      const parentIssueType = parentIssue.fields.issuetype.name;
+
+      // Check if this parent issue type supports subtask creation
+      if (!PARENT_TYPE_TO_SUBTASK_TYPE[parentIssueType]) {
+        const supportedTypes = Object.keys(PARENT_TYPE_TO_SUBTASK_TYPE).join(', ');
+        throw new Error(
+          `Subtasks can only be created for: ${supportedTypes}. "${parentIssueType}" does not support subtasks.`
+        );
+      }
+
+      const expectedSubtaskType = PARENT_TYPE_TO_SUBTASK_TYPE[parentIssueType];
+
+      // Try to determine the correct subtask issue type ID by fetching available issue types
+      let subtaskId = null;
+      try {
+        const createmeta = await this.client.get('/issue/createmeta', {
+          params: {
+            projectKeys: projectKey,
+            expand: 'projects.issuetypes.fields',
+          },
+        });
+
+        if (createmeta.data.projects && createmeta.data.projects[0]) {
+          const issueTypes = createmeta.data.projects[0].issuetypes || [];
+          const subtaskType = issueTypes.find(
+            (it: any) =>
+              it.name.toLowerCase() === expectedSubtaskType.toLowerCase() ||
+              (it.subtask === true &&
+               (expectedSubtaskType.toLowerCase() === 'subtask' ||
+                expectedSubtaskType.toLowerCase() === 'sub-task'))
+          );
+          if (subtaskType) {
+            subtaskId = subtaskType.id;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch issue types via createmeta, will try with standard names');
+      }
+
       const payload: any = {
         fields: {
           project: {
-            key: parentIssueKey.split('-')[0], // Extract project key from issue key
+            key: projectKey,
           },
           summary: summary,
-          issuetype: {
-            name: 'Subtask',
-          },
+          issuetype: subtaskId
+            ? { id: subtaskId }
+            : { name: expectedSubtaskType },
           parent: {
             key: parentIssueKey,
           },
@@ -179,8 +229,17 @@ export class JiraService {
       const response = await this.client.post('/issue', payload);
       return response.data;
     } catch (error: any) {
-      console.error('Error creating subtask:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.errorMessages?.[0] || 'Failed to create subtask');
+      console.error('Error creating subtask:');
+      console.error('Status:', error.response?.status);
+      console.error('Full Error Data:', JSON.stringify(error.response?.data, null, 2));
+      console.error('Error Message:', error.message);
+
+      const errorMsg =
+        error.message ||
+        error.response?.data?.errorMessages?.[0] ||
+        Object.values(error.response?.data?.errors || {}).join(', ') ||
+        'Failed to create subtask';
+      throw new Error(errorMsg);
     }
   }
 }

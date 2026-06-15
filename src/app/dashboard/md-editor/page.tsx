@@ -29,11 +29,14 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 
-// Enhanced markdown renderer
-const renderMarkdown = (markdown: string): string => {
+// Confluence-compatible markdown renderer with link URL support
+const renderMarkdown = (markdown: string, baseUrl?: string | null): string => {
   if (!markdown) return '';
 
   let html = markdown;
+
+  // Extract base URL for relative link resolution
+  let linkBaseUrl = baseUrl ? new URL(baseUrl).origin : null;
 
   // Code blocks (must be processed first)
   html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
@@ -43,7 +46,9 @@ const renderMarkdown = (markdown: string): string => {
   // Inline code
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-  // Headers
+  // Headers - Confluence needs proper h1-h6 tags
+  html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>');
+  html = html.replace(/^##### (.+)$/gm, '<h5>$1</h5>');
   html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
   html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
   html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
@@ -64,8 +69,35 @@ const renderMarkdown = (markdown: string): string => {
   html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
   html = html.replace(/_(.+?)_/g, '<em>$1</em>');
 
-  // Links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  // Links - convert to anchor links (#) format
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
+    let finalUrl = url;
+
+    // If URL contains a hash/anchor, extract just the anchor part
+    if (url.includes('#')) {
+      finalUrl = '#' + url.split('#')[1]; // Get everything after #
+    }
+    // If URL is relative, convert to anchor format by using it as the hash
+    else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      // Convert path to anchor format: /page/name → #/page/name or just #name
+      finalUrl = '#' + url;
+    }
+    // If it's an absolute URL, extract domain and path as anchor
+    else if (url.startsWith('http://') || url.startsWith('https://')) {
+      try {
+        const urlObj = new URL(url);
+        // Use pathname as anchor, removing leading slash
+        const pathname = urlObj.pathname.replace(/^\//, '');
+        finalUrl = '#' + (pathname || 'top');
+      } catch {
+        finalUrl = '#link';
+      }
+    }
+
+    // For anchor links, don't open in new tab
+    const isAnchor = finalUrl.startsWith('#');
+    return `<a href="${finalUrl}" ${!isAnchor ? 'target="_blank" rel="noopener noreferrer"' : ''}>${text}</a>`;
+  });
 
   // Images
   html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0;" />');
@@ -140,6 +172,27 @@ const escapeHtml = (text: string): string => {
   return text.replace(/[&<>"']/g, (m) => map[m]);
 };
 
+// Convert to Confluence format - just clean HTML for paste
+const convertToConfluenceFormat = (markdown: string, baseUrl?: string | null): string => {
+  // First render to HTML (with link resolution if baseUrl provided)
+  let html = renderMarkdown(markdown, baseUrl);
+
+  // For direct paste into Confluence editor, return clean HTML without wrapper
+  // Confluence will automatically format it when pasted
+  return html;
+};
+
+// Convert to Confluence API format (with storage wrapper)
+const convertToConfluenceApiFormat = (markdown: string, baseUrl?: string | null): string => {
+  // First render to HTML
+  let html = renderMarkdown(markdown, baseUrl);
+
+  // Wrap in ac:rich-text-body for API storage format
+  html = `<ac:rich-text-body>${html}</ac:rich-text-body>`;
+
+  return html;
+};
+
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -166,15 +219,54 @@ export default function MDEditorPage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMinimized, setChatMinimized] = useState(false);
   const [contentType, setContentType] = useState<'markdown' | 'html'>('markdown');
+  const [copiedFeedback, setCopiedFeedback] = useState<string | null>(null);
+  const [sourceUrl, setSourceUrl] = useState<string | null>(null); // Track if loaded from Confluence
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Memoize markdown rendering to prevent recalculation on every render
-  const renderedMarkdown = useMemo(() => renderMarkdown(fileContent), [fileContent]);
+  const renderedMarkdown = useMemo(() => renderMarkdown(fileContent, sourceUrl), [fileContent, sourceUrl]);
 
   // Auto-scroll to bottom of chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory]);
+
+  // Auto-dismiss copy feedback after 2 seconds
+  useEffect(() => {
+    if (copiedFeedback) {
+      const timer = setTimeout(() => setCopiedFeedback(null), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [copiedFeedback]);
+
+  const handleCopy = async (text: string, feedbackMsg: string, isHtml: boolean = false) => {
+    try {
+      if (isHtml && navigator.clipboard.write) {
+        // Copy as both plain text and HTML to preserve formatting in Confluence
+        // while keeping anchor links as #section (not full URLs)
+        try {
+          const blob = new Blob([text], { type: 'text/html' });
+          const plainBlob = new Blob([text], { type: 'text/plain' });
+          const data = [
+            new ClipboardItem({
+              'text/html': blob,
+              'text/plain': plainBlob,
+            }),
+          ];
+          await navigator.clipboard.write(data);
+        } catch {
+          // Fallback to plain text if write fails
+          await navigator.clipboard.writeText(text);
+        }
+      } else {
+        // Copy as plain text
+        await navigator.clipboard.writeText(text);
+      }
+      setCopiedFeedback(feedbackMsg);
+    } catch (err) {
+      setError('Failed to copy to clipboard');
+    }
+  };
 
   const handleReadFile = async () => {
     if (!filePath) {
@@ -207,6 +299,7 @@ export default function MDEditorPage() {
         setFileContent(data.content);
         setOriginalContent(data.content);
         setContentType('html');
+        setSourceUrl(filePath); // Store the Confluence URL for link resolution
 
         setSuccess(`Confluence page loaded: ${data.metadata.title} (Space: ${data.metadata.space})`);
 
@@ -233,6 +326,7 @@ export default function MDEditorPage() {
 
         setFileContent(data.content);
         setOriginalContent(data.content);
+        setSourceUrl(null); // Clear source URL for local files
 
         // Auto-detect content type
         const isHtml = data.content.trim().startsWith('<') || data.content.includes('<div') || data.content.includes('<p>');
@@ -967,7 +1061,7 @@ export default function MDEditorPage() {
             )}
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
               <Button
                 onClick={handleSaveFile}
                 disabled={saving || !hasUnsavedChanges}
@@ -988,14 +1082,49 @@ export default function MDEditorPage() {
 
               <Button
                 onClick={() => {
-                  // Copy to clipboard
-                  navigator.clipboard.writeText(fileContent);
-                  setSuccess('Content copied to clipboard! You can paste it back to Confluence.');
+                  handleCopy(fileContent, '✓ Markdown copied to clipboard!');
                 }}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg"
+                className={`font-bold py-3 rounded-lg transition-all ${
+                  copiedFeedback === '✓ Markdown copied to clipboard!'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                } text-white`}
               >
-                <Download className="w-5 h-5 mr-2" />
-                Copy to Clipboard
+                {copiedFeedback === '✓ Markdown copied to clipboard!' ? (
+                  <>
+                    <CheckCircle2 className="w-5 h-5 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-5 h-5 mr-2" />
+                    Copy as Markdown
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={() => {
+                  const confluenceHtml = convertToConfluenceFormat(fileContent, sourceUrl);
+                  handleCopy(confluenceHtml, '✓ Confluence format copied!', true);
+                }}
+                className={`font-bold py-3 rounded-lg transition-all ${
+                  copiedFeedback === '✓ Confluence format copied!'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-purple-600 hover:bg-purple-700'
+                } text-white`}
+              >
+                {copiedFeedback === '✓ Confluence format copied!' ? (
+                  <>
+                    <CheckCircle2 className="w-5 h-5 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-5 h-5 mr-2" />
+                    Copy for Confluence
+                  </>
+                )}
               </Button>
 
               <Button
