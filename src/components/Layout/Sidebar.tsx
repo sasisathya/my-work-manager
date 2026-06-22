@@ -130,45 +130,47 @@ export default function Sidebar() {
       </nav>
 
       {/* My Profile Section */}
-      <div className="p-4 border-t border-gray-600/20 space-y-3 relative group">
+      <div className="p-4 border-t border-gray-600/20 space-y-3">
         {/* Profile Header - Works as both link and toggle */}
-        <Link
-          href="/dashboard/my-profile"
-          onClick={(e) => {
-            if (expanded) {
-              e.preventDefault();
-              setProfileExpanded(!profileExpanded);
-            }
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
-            profileExpanded
-              ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/30 text-white'
-              : 'text-gray-300 hover:bg-gray-600/20 hover:text-white'
-          } ${!expanded ? 'justify-center' : ''}`}
-        >
-          <div className="relative flex-shrink-0">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-              <User className="w-5 h-5 text-white" />
-            </div>
-            {/* Online indicator */}
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-900" />
-          </div>
-          {expanded && (
-            <>
-              <div className="flex-1 text-left">
-                <p className="text-xs font-semibold text-white">My Profile</p>
-                <p className="text-xs text-gray-400">No resume yet</p>
+        <div className="relative group">
+          <Link
+            href="/dashboard/my-profile"
+            onClick={(e) => {
+              if (expanded) {
+                e.preventDefault();
+                setProfileExpanded(!profileExpanded);
+              }
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+              profileExpanded
+                ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/30 text-white'
+                : 'text-gray-300 hover:bg-gray-600/20 hover:text-white'
+            } ${!expanded ? 'justify-center' : ''}`}
+          >
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
+                <User className="w-5 h-5 text-white" />
               </div>
-              <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${profileExpanded ? 'rotate-180' : ''}`} />
-            </>
+              {/* Online indicator */}
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-900" />
+            </div>
+            {expanded && (
+              <>
+                <div className="flex-1 text-left">
+                  <p className="text-xs font-semibold text-white">My Profile</p>
+                  <p className="text-xs text-gray-400">No resume yet</p>
+                </div>
+                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${profileExpanded ? 'rotate-180' : ''}`} />
+              </>
+            )}
+          </Link>
+          {/* Tooltip for collapsed state */}
+          {!expanded && (
+            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap border border-gray-600 z-50">
+              My Profile
+            </div>
           )}
-        </Link>
-        {/* Tooltip for collapsed state */}
-        {!expanded && (
-          <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap border border-gray-600 z-50">
-            My Profile
-          </div>
-        )}
+        </div>
 
         {/* Profile Expanded Section */}
         {expanded && profileExpanded && (
