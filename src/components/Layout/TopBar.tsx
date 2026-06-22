@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Bell, Search, User, Settings, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export default function TopBar() {
@@ -35,12 +35,18 @@ export default function TopBar() {
         </button>
 
         {/* Settings */}
-        <button className="p-2 rounded-lg hover:bg-purple-500/10 transition-colors">
-          <Settings className="w-5 h-5 text-gray-300" />
-        </button>
+        <Link
+          href="/dashboard/settings"
+          className="p-2 rounded-lg hover:bg-purple-500/10 transition-colors text-gray-300 hover:text-white"
+        >
+          <Settings className="w-5 h-5" />
+        </Link>
 
         {/* User Profile */}
-        <div className="flex items-center gap-3 pl-4 border-l border-purple-500/30">
+        <Link
+          href="/dashboard/my-profile"
+          className="flex items-center gap-3 pl-4 border-l border-purple-500/30 hover:opacity-80 transition-opacity"
+        >
           <div className="text-right">
             <p className="text-sm font-semibold text-white">Jira User</p>
             <p className="text-xs text-gray-400">Developer</p>
@@ -51,7 +57,7 @@ export default function TopBar() {
               <User className="w-5 h-5 text-white" />
             </div>
           </div>
-        </div>
+        </Link>
       </div>
     </div>
   );
