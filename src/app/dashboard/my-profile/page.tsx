@@ -1,11 +1,26 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { Upload, Download, FileText, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import ProfileCard from './components/ProfileCard';
 import ResumeUploader from './components/ResumeUploader';
-import ProfileStats from './components/ProfileStats';
+
+// Lazy load components for better performance
+const ProfileCard = lazy(() => import('./components/ProfileCard'));
+const ProfileStats = lazy(() => import('./components/ProfileStats'));
+
+// Loading skeleton component
+function ProfileSkeleton() {
+  return (
+    <div className="glass-card rounded-3xl p-6 md:p-8 animate-pulse">
+      <div className="h-64 bg-gray-700/50 rounded-2xl mb-4" />
+      <div className="space-y-3">
+        <div className="h-4 bg-gray-700/50 rounded w-3/4" />
+        <div className="h-4 bg-gray-700/50 rounded w-1/2" />
+      </div>
+    </div>
+  );
+}
 
 export default function MyProfilePage() {
   const [profileData, setProfileData] = useState(null);
@@ -61,11 +76,39 @@ export default function MyProfilePage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Profile Card with 3D Animation */}
-          <ProfileCard profile={profileData} />
+          {/* Profile Card with 3D Animation - Lazy loaded */}
+          <Suspense fallback={<ProfileSkeleton />}>
+            <ProfileCard profile={profileData} />
+          </Suspense>
 
-          {/* Profile Statistics */}
-          <ProfileStats profile={profileData} />
+          {/* Profile Statistics - Lazy loaded */}
+          <Suspense fallback={<ProfileSkeleton />}>
+            <ProfileStats profile={profileData} />
+          </Suspense>
+
+          {/* Raw JSON Data Viewer */}
+          <div className="glass-card rounded-3xl p-6 md:p-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold gradient-text">Profile Data (JSON)</h2>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(JSON.stringify(profileData, null, 2));
+                  alert('JSON copied to clipboard!');
+                }}
+                className="text-xs px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors"
+              >
+                Copy JSON
+              </button>
+            </div>
+            <div className="bg-gray-900/80 rounded-2xl p-4 overflow-auto max-h-96 border border-gray-700/50">
+              <pre className="text-xs md:text-sm text-gray-300 font-mono whitespace-pre-wrap break-words">
+                {JSON.stringify(profileData, null, 2)}
+              </pre>
+            </div>
+            <p className="text-xs text-gray-500 mt-3">
+              This JSON data is stored in `/data/profiles/profile_[timestamp].json` and used for 3D animated profile generation.
+            </p>
+          </div>
 
           {/* Action Buttons */}
           <div className="glass-card rounded-3xl p-6 md:p-8">

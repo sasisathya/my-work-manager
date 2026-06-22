@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { Star, Briefcase, BookOpen, Award } from 'lucide-react';
 
 interface Skill {
@@ -36,7 +36,81 @@ interface ProfileData {
   certifications?: Array<{ name: string; issuer: string; year: string }>;
 }
 
-export default function ProfileCard({ profile }: { profile: ProfileData }) {
+// Memoized skill item component
+const SkillItem = memo(({ skill, getSkillColor, getSkillBgColor }: any) => (
+  <div className={`${getSkillBgColor(skill.level)} rounded-2xl p-4 border border-gray-600/20 hover:border-gray-600/50 transition-all duration-300`}>
+    <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center gap-2">
+        <span className="font-semibold text-white text-sm">{skill.name}</span>
+        {skill.yearsOfExperience && (
+          <span className="text-xs text-gray-400">({skill.yearsOfExperience}y)</span>
+        )}
+      </div>
+      <div className="flex gap-1">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Star
+            key={i}
+            size={14}
+            className={`${
+              i < skill.level
+                ? `fill-yellow-400 text-yellow-400`
+                : `text-gray-600`
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+    <div className="h-2 bg-gray-700/50 rounded-full overflow-hidden">
+      <div
+        className={`h-full bg-gradient-to-r ${getSkillColor(skill.level)} transition-all duration-500`}
+        style={{ width: `${(skill.level / 5) * 100}%` }}
+      />
+    </div>
+  </div>
+));
+
+SkillItem.displayName = 'SkillItem';
+
+// Memoized experience item component
+const ExperienceItem = memo(({ exp }: any) => (
+  <div className="glass-card rounded-2xl p-4 border border-gray-600/20 hover:border-gray-600/50 transition-all duration-300 transform hover:scale-102">
+    <div className="flex items-start gap-3 mb-2">
+      <div className="mt-1">
+        <Briefcase className="w-5 h-5 text-purple-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-bold text-white text-sm">{exp.title}</h3>
+        <p className="text-purple-400 font-medium text-xs">{exp.company}</p>
+        <p className="text-gray-400 text-xs">{exp.duration}</p>
+        {exp.description && (
+          <p className="text-gray-300 text-xs mt-2">{exp.description}</p>
+        )}
+      </div>
+    </div>
+  </div>
+));
+
+ExperienceItem.displayName = 'ExperienceItem';
+
+// Memoized education item component
+const EducationItem = memo(({ edu }: any) => (
+  <div className="glass-card rounded-2xl p-4 border border-gray-600/20 hover:border-gray-600/50 transition-all duration-300">
+    <div className="flex items-start gap-3">
+      <div className="mt-1">
+        <BookOpen className="w-5 h-5 text-blue-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-bold text-white text-sm">{edu.degree}</h3>
+        <p className="text-blue-400 font-medium text-xs">{edu.school}</p>
+        <p className="text-gray-400 text-xs">{edu.year}</p>
+      </div>
+    </div>
+  </div>
+));
+
+EducationItem.displayName = 'EducationItem';
+
+function ProfileCardContent({ profile }: { profile: ProfileData }) {
   const [activeTab, setActiveTab] = React.useState<'overview' | 'skills' | 'experience' | 'education'>('overview');
 
   const getSkillColor = (level: number) => {
@@ -158,90 +232,50 @@ export default function ProfileCard({ profile }: { profile: ProfileData }) {
               </div>
             )}
 
-            {/* Skills Tab */}
+            {/* Skills Tab - Limited to 10 items (virtualization pattern) */}
             {activeTab === 'skills' && (
               <div className="space-y-3">
-                {profile.skills.map((skill, index) => (
-                  <div key={index} className={`${getSkillBgColor(skill.level)} rounded-2xl p-4 border border-gray-600/20 hover:border-gray-600/50 transition-all duration-300`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-white">{skill.name}</span>
-                        {skill.yearsOfExperience && (
-                          <span className="text-xs text-gray-400">({skill.yearsOfExperience}y)</span>
-                        )}
-                      </div>
-                      <div className="flex gap-1">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            size={16}
-                            className={`${
-                              i < skill.level
-                                ? `fill-yellow-400 text-yellow-400`
-                                : `text-gray-600`
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    {/* Skill Progress Bar */}
-                    <div className="h-2 bg-gray-700/50 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full bg-gradient-to-r ${getSkillColor(skill.level)} transition-all duration-500`}
-                        style={{ width: `${(skill.level / 5) * 100}%` }}
-                      />
-                    </div>
-                  </div>
+                {profile.skills.slice(0, 10).map((skill, index) => (
+                  <SkillItem
+                    key={`${skill.name}-${index}`}
+                    skill={skill}
+                    getSkillColor={getSkillColor}
+                    getSkillBgColor={getSkillBgColor}
+                  />
                 ))}
+                {profile.skills.length > 10 && (
+                  <div className="p-3 text-center text-sm text-gray-400">
+                    ... and {profile.skills.length - 10} more skills
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Experience Tab */}
+            {/* Experience Tab - Limited to 5 items */}
             {activeTab === 'experience' && (
-              <div className="space-y-4">
-                {profile.experience.map((exp, index) => (
-                  <div
-                    key={index}
-                    className="glass-card rounded-2xl p-4 border border-gray-600/20 hover:border-gray-600/50 transition-all duration-300 transform hover:scale-102"
-                  >
-                    <div className="flex items-start gap-3 mb-2">
-                      <div className="mt-1">
-                        <Briefcase className="w-5 h-5 text-purple-400" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-bold text-white text-lg">{exp.title}</h3>
-                        <p className="text-purple-400 font-medium">{exp.company}</p>
-                        <p className="text-gray-400 text-sm">{exp.duration}</p>
-                        {exp.description && (
-                          <p className="text-gray-300 text-sm mt-2">{exp.description}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+              <div className="space-y-3">
+                {profile.experience.slice(0, 5).map((exp, index) => (
+                  <ExperienceItem key={`${exp.title}-${index}`} exp={exp} />
                 ))}
+                {profile.experience.length > 5 && (
+                  <div className="p-3 text-center text-sm text-gray-400">
+                    ... and {profile.experience.length - 5} more positions
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Education Tab */}
+            {/* Education Tab - Limited to 5 items */}
             {activeTab === 'education' && (
-              <div className="space-y-4">
-                {profile.education.map((edu, index) => (
-                  <div
-                    key={index}
-                    className="glass-card rounded-2xl p-4 border border-gray-600/20 hover:border-gray-600/50 transition-all duration-300"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1">
-                        <BookOpen className="w-5 h-5 text-blue-400" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-bold text-white text-lg">{edu.degree}</h3>
-                        <p className="text-blue-400 font-medium">{edu.school}</p>
-                        <p className="text-gray-400 text-sm">{edu.year}</p>
-                      </div>
-                    </div>
-                  </div>
+              <div className="space-y-3">
+                {profile.education.slice(0, 5).map((edu, index) => (
+                  <EducationItem key={`${edu.degree}-${index}`} edu={edu} />
                 ))}
+                {profile.education.length > 5 && (
+                  <div className="p-3 text-center text-sm text-gray-400">
+                    ... and {profile.education.length - 5} more degrees
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -250,3 +284,9 @@ export default function ProfileCard({ profile }: { profile: ProfileData }) {
     </div>
   );
 }
+
+// Named export for lazy loading
+export const MemoizedProfileCard = memo(ProfileCardContent);
+
+// Default export for direct imports
+export default MemoizedProfileCard;

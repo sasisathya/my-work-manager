@@ -130,10 +130,16 @@ export default function Sidebar() {
       </nav>
 
       {/* My Profile Section */}
-      <div className="p-4 border-t border-gray-600/20 space-y-3">
-        {/* Profile Header */}
-        <button
-          onClick={() => setProfileExpanded(!profileExpanded)}
+      <div className="p-4 border-t border-gray-600/20 space-y-3 relative group">
+        {/* Profile Header - Works as both link and toggle */}
+        <Link
+          href="/dashboard/my-profile"
+          onClick={(e) => {
+            if (expanded) {
+              e.preventDefault();
+              setProfileExpanded(!profileExpanded);
+            }
+          }}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
             profileExpanded
               ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/30 text-white'
@@ -156,7 +162,13 @@ export default function Sidebar() {
               <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${profileExpanded ? 'rotate-180' : ''}`} />
             </>
           )}
-        </button>
+        </Link>
+        {/* Tooltip for collapsed state */}
+        {!expanded && (
+          <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap border border-gray-600 z-50">
+            My Profile
+          </div>
+        )}
 
         {/* Profile Expanded Section */}
         {expanded && profileExpanded && (

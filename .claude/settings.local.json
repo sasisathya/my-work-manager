@@ -64,7 +64,8 @@
       "Bash(npm cache clean:*)",
       "Bash(.gitignore)",
       "Bash(git rm:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(git -C /Users/sajja.krishna/Desktop/sasi/my-work-manager status)"
     ],
     "deny": [],
     "ask": []

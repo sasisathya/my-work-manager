@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { TrendingUp, Target, Zap, Award } from 'lucide-react';
 
 interface Skill {
@@ -34,11 +34,20 @@ interface ProfileData {
   experience: Experience[];
   education: Education[];
   certifications?: Array<{ name: string; issuer: string; year: string }>;
+  languages?: Array<{ language: string; proficiency: string }>;
+  projects?: Array<{ name: string; description: string; technologies: string[]; year: string }>;
+  metadata?: {
+    totalYearsExperience: number;
+    parsedAt: string;
+    resumeVersion: number;
+    completionScore: number;
+    missingFields: string[];
+  };
 }
 
-export default function ProfileStats({ profile }: { profile: ProfileData }) {
-  // Calculate statistics
-  const calculateStats = () => {
+function ProfileStatsContent({ profile }: { profile: ProfileData }) {
+  // Memoized statistics calculation for performance
+  const stats = useMemo(() => {
     const totalSkillPoints = profile.skills.reduce((sum, skill) => sum + skill.level, 0);
     const avgSkillLevel = profile.skills.length > 0 ? (totalSkillPoints / (profile.skills.length * 5)) * 100 : 0;
 
@@ -55,13 +64,63 @@ export default function ProfileStats({ profile }: { profile: ProfileData }) {
       skillCount: profile.skills.length,
       experienceCount: profile.experience.length,
       certCount: profile.certifications?.length || 0,
+      completionScore: profile.metadata?.completionScore || 0,
+      missingFields: profile.metadata?.missingFields || [],
+      parsedAt: profile.metadata?.parsedAt,
     };
-  };
-
-  const stats = calculateStats();
+  }, [profile.skills, profile.experience.length, profile.certifications?.length, profile.metadata]);
 
   return (
     <div className="space-y-6">
+      {/* Profile Completion Score - Prominent Display */}
+      <div className="glass-card rounded-3xl p-8 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold gradient-text mb-2">Profile Completion</h2>
+              <p className="text-gray-400 text-sm">Your resume analysis and profile readiness</p>
+            </div>
+            <div className="text-right">
+              <div className="text-5xl font-bold gradient-text">{stats.completionScore}%</div>
+              <p className="text-gray-400 text-sm mt-1">Complete</p>
+            </div>
+          </div>
+
+          {/* Large Progress Bar */}
+          <div className="h-4 bg-gray-700/50 rounded-full overflow-hidden mb-6">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-700 rounded-full"
+              style={{ width: `${stats.completionScore}%` }}
+            />
+          </div>
+
+          {/* Missing Fields Section */}
+          {stats.missingFields.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-gray-600/30">
+              <h3 className="text-sm font-semibold text-gray-300 mb-3">Fields to Complete:</h3>
+              <div className="flex flex-wrap gap-2">
+                {stats.missingFields.map((field) => (
+                  <span
+                    key={field}
+                    className="px-3 py-1.5 bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 text-xs font-medium rounded-lg"
+                  >
+                    {field.charAt(0).toUpperCase() + field.slice(1)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Last Updated */}
+          {stats.parsedAt && (
+            <p className="text-xs text-gray-500 mt-4">
+              Last updated: {new Date(stats.parsedAt).toLocaleDateString()} at {new Date(stats.parsedAt).toLocaleTimeString()}
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* Main Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Average Skill Level */}
@@ -223,3 +282,9 @@ export default function ProfileStats({ profile }: { profile: ProfileData }) {
     </div>
   );
 }
+
+// Named export for lazy loading
+export const MemoizedProfileStats = memo(ProfileStatsContent);
+
+// Default export for direct imports
+export default MemoizedProfileStats;

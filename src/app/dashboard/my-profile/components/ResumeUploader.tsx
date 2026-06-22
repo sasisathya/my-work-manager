@@ -96,10 +96,12 @@ export default function ResumeUploader({ onUpload, loading }: ResumeUploaderProp
         </div>
 
         {!loading && (
-          <Button className="glass-button rounded-xl text-base md:text-lg py-4 md:py-6 px-6 md:px-8 mx-auto block">
-            <FileText className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3" />
-            Choose Resume
-          </Button>
+          <div className="flex justify-center pt-2">
+            <Button className="glass-button rounded-xl text-base md:text-lg py-4 md:py-6 px-6 md:px-8 inline-flex items-center gap-2 md:gap-3">
+              <FileText className="w-5 h-5 md:w-6 md:h-6" />
+              <span>Choose Resume</span>
+            </Button>
+          </div>
         )}
       </div>
     </div>

@@ -46,3 +46,6 @@ config.local.json
 .env.*.local
 .npmrc
 package-lock.json
+
+# documentation (for later release)
+/docs

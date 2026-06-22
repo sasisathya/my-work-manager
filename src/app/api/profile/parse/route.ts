@@ -14,23 +14,47 @@ interface ParsedProfile {
     name: string;
     level: number;
     yearsOfExperience?: number;
+    category?: string;
   }>;
   experience: Array<{
     title: string;
     company: string;
     duration: string;
+    startDate?: string;
+    endDate?: string;
     description?: string;
+    location?: string;
   }>;
   education: Array<{
     degree: string;
     school: string;
     year: string;
+    field?: string;
+    grade?: string;
   }>;
   certifications?: Array<{
     name: string;
     issuer: string;
     year: string;
+    credentialId?: string;
   }>;
+  languages?: Array<{
+    language: string;
+    proficiency: string;
+  }>;
+  projects?: Array<{
+    name: string;
+    description: string;
+    technologies?: string[];
+    year: string;
+  }>;
+  metadata?: {
+    totalYearsExperience: number;
+    parsedAt: string;
+    resumeVersion: number;
+    completionScore: number;
+    missingFields: string[];
+  };
 }
 
 async function extractTextFromPdf(filePath: string): Promise<string> {
@@ -65,40 +89,88 @@ async function extractTextFromPdf(filePath: string): Promise<string> {
 async function parseResumeWithAI(resumeText: string): Promise<ParsedProfile> {
   const client = new Anthropic();
 
-  const prompt = `You are a resume parser. Extract the following information from the resume text below and return it as a valid JSON object.
+  const prompt = `You are a professional resume parser. Extract the following information from the resume text below and return it as a valid JSON object. Be thorough and accurate.
 
 Resume Text:
 ${resumeText}
 
-Return a JSON object with this exact structure (use only what you can find in the resume):
+Return a JSON object with this EXACT structure. For missing fields, include them with null values:
 {
   "personalInfo": {
     "name": "Full Name",
     "email": "email@example.com",
     "phone": "+1234567890",
     "location": "City, Country",
-    "summary": "Professional summary if available"
+    "summary": "Professional summary or objective"
   },
   "skills": [
-    {"name": "Skill Name", "level": 4, "yearsOfExperience": 3}
+    {
+      "name": "Skill Name",
+      "level": 4,
+      "yearsOfExperience": 3,
+      "category": "Technical"
+    }
   ],
   "experience": [
-    {"title": "Job Title", "company": "Company Name", "duration": "2020-2023", "description": "Brief description"}
+    {
+      "title": "Job Title",
+      "company": "Company Name",
+      "duration": "2020-2023",
+      "startDate": "2020",
+      "endDate": "2023",
+      "description": "Key responsibilities and achievements",
+      "location": "City, Country"
+    }
   ],
   "education": [
-    {"degree": "Degree Name", "school": "School Name", "year": "2020"}
+    {
+      "degree": "Degree Name",
+      "school": "School Name",
+      "year": "2020",
+      "field": "Field of Study",
+      "grade": "3.8"
+    }
   ],
   "certifications": [
-    {"name": "Certification Name", "issuer": "Issuer Name", "year": "2023"}
-  ]
+    {
+      "name": "Certification Name",
+      "issuer": "Issuer Name",
+      "year": "2023",
+      "credentialId": "ID if available"
+    }
+  ],
+  "languages": [
+    {
+      "language": "English",
+      "proficiency": "Native"
+    }
+  ],
+  "projects": [
+    {
+      "name": "Project Name",
+      "description": "Project description",
+      "technologies": ["Tech1", "Tech2"],
+      "year": "2023"
+    }
+  ],
+  "metadata": {
+    "totalYearsExperience": 5,
+    "parsedAt": "2024-06-22T10:30:00Z",
+    "resumeVersion": 1,
+    "completionScore": 85,
+    "missingFields": ["location", "projects"]
+  }
 }
 
 Guidelines:
-1. For skills level, use 1-5 scale (5 being expert)
+1. For skills level, use 1-5 scale (1=Beginner, 5=Expert)
 2. For duration, use "YYYY-YYYY" format or "YYYY-Present"
-3. Extract only data that is explicitly mentioned in the resume
-4. If a field is not found, omit it or use null
-5. Return ONLY the JSON object, no additional text`;
+3. Extract ALL data explicitly mentioned in the resume
+4. Include skill categories: Technical, Soft, Languages
+5. Calculate total years of experience from work history
+6. Track which fields are missing for later prompting
+7. Calculate a completion score (0-100) based on how many fields are filled
+8. Return ONLY the JSON object, no additional text`;
 
   try {
     const message = await client.messages.create({
@@ -130,6 +202,65 @@ Guidelines:
 
     const parsedData = JSON.parse(jsonStr) as ParsedProfile;
 
+    // Calculate completion score based on filled fields
+    const calculateCompletionScore = (data: ParsedProfile): number => {
+      let filledFields = 0;
+      let totalFields = 0;
+
+      // Personal Info (5 fields)
+      if (data.personalInfo?.name) filledFields++;
+      if (data.personalInfo?.email) filledFields++;
+      if (data.personalInfo?.phone) filledFields++;
+      if (data.personalInfo?.location) filledFields++;
+      if (data.personalInfo?.summary) filledFields++;
+      totalFields += 5;
+
+      // Skills, Experience, Education (3 fields)
+      if ((data.skills || []).length > 0) filledFields++;
+      if ((data.experience || []).length > 0) filledFields++;
+      if ((data.education || []).length > 0) filledFields++;
+      totalFields += 3;
+
+      // Optional fields (3 fields)
+      if ((data.certifications || []).length > 0) filledFields++;
+      if ((data.languages || []).length > 0) filledFields++;
+      if ((data.projects || []).length > 0) filledFields++;
+      totalFields += 3;
+
+      return Math.round((filledFields / totalFields) * 100);
+    };
+
+    // Identify missing fields
+    const identifyMissingFields = (data: ParsedProfile): string[] => {
+      const missing: string[] = [];
+
+      if (!data.personalInfo?.email) missing.push('email');
+      if (!data.personalInfo?.phone) missing.push('phone');
+      if (!data.personalInfo?.location) missing.push('location');
+      if (!data.personalInfo?.summary) missing.push('summary');
+      if ((data.skills || []).length === 0) missing.push('skills');
+      if ((data.certifications || []).length === 0) missing.push('certifications');
+      if ((data.languages || []).length === 0) missing.push('languages');
+      if ((data.projects || []).length === 0) missing.push('projects');
+
+      return missing;
+    };
+
+    // Calculate total years of experience
+    const totalYearsExperience = (parsedData.experience || []).reduce((sum, exp) => {
+      if (exp.startDate && exp.endDate && exp.endDate !== 'Present') {
+        const start = parseInt(exp.startDate);
+        const end = parseInt(exp.endDate);
+        if (!isNaN(start) && !isNaN(end)) {
+          return sum + (end - start);
+        }
+      }
+      return sum;
+    }, 0);
+
+    const completionScore = calculateCompletionScore(parsedData);
+    const missingFields = identifyMissingFields(parsedData);
+
     // Validate and normalize the parsed data
     return {
       personalInfo: {
@@ -143,23 +274,47 @@ Guidelines:
         name: skill.name,
         level: Math.min(5, Math.max(1, skill.level || 3)),
         yearsOfExperience: skill.yearsOfExperience,
+        category: skill.category,
       })),
       experience: (parsedData.experience || []).map((exp) => ({
         title: exp.title,
         company: exp.company,
         duration: exp.duration,
+        startDate: exp.startDate,
+        endDate: exp.endDate,
         description: exp.description,
+        location: exp.location,
       })),
       education: (parsedData.education || []).map((edu) => ({
         degree: edu.degree,
         school: edu.school,
         year: edu.year,
+        field: edu.field,
+        grade: edu.grade,
       })),
       certifications: (parsedData.certifications || []).map((cert) => ({
         name: cert.name,
         issuer: cert.issuer,
         year: cert.year,
+        credentialId: cert.credentialId,
       })),
+      languages: (parsedData.languages || []).map((lang) => ({
+        language: lang.language,
+        proficiency: lang.proficiency,
+      })),
+      projects: (parsedData.projects || []).map((proj) => ({
+        name: proj.name,
+        description: proj.description,
+        technologies: proj.technologies || [],
+        year: proj.year,
+      })),
+      metadata: {
+        totalYearsExperience,
+        parsedAt: new Date().toISOString(),
+        resumeVersion: 1,
+        completionScore,
+        missingFields,
+      },
     };
   } catch (error) {
     console.error('Error parsing resume with AI:', error);
