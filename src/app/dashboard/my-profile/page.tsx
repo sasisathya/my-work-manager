@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, Suspense, lazy } from 'react';
-import { Upload, Download, FileText, Zap } from 'lucide-react';
+import React, { useState, Suspense, lazy, useEffect } from 'react';
+import { Upload, Download, FileText, Zap, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ResumeUploader from './components/ResumeUploader';
 
@@ -24,7 +24,31 @@ function ProfileSkeleton() {
 
 export default function MyProfilePage() {
   const [profileData, setProfileData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchProfileStatus();
+  }, []);
+
+  const fetchProfileStatus = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch('/api/profile/status');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.profile) {
+          setProfileData(data.profile);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      setError('Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleResumeUpload = async (file: File) => {
     setLoading(true);
@@ -43,6 +67,7 @@ export default function MyProfilePage() {
       }
     } catch (error) {
       console.error('Error uploading resume:', error);
+      setError('Failed to upload resume');
     } finally {
       setLoading(false);
     }
@@ -56,10 +81,10 @@ export default function MyProfilePage() {
           <div className="flex-1">
             <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">My Profile</h1>
             <p className="text-gray-300 text-sm md:text-lg">
-              Upload your resume to create a stunning 3D animated profile
+              {loading && !profileData ? 'Loading your profile...' : 'Upload your resume to create a stunning 3D animated profile'}
             </p>
           </div>
-          {!profileData && (
+          {!profileData && !loading && (
             <div className="relative flex-shrink-0 hidden md:block">
               <div className="absolute inset-0 blur-3xl bg-gradient-to-r from-purple-500 to-pink-500 opacity-40" />
               <div className="relative">
@@ -70,11 +95,28 @@ export default function MyProfilePage() {
         </div>
       </div>
 
-      {!profileData ? (
+      {/* Loading State */}
+      {loading && !profileData && (
+        <div className="space-y-6">
+          <ProfileSkeleton />
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="glass-card border-red-500/40 bg-gradient-to-r from-red-500/15 to-red-400/15 rounded-2xl p-6">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-6 h-6 text-red-400" />
+            <p className="text-red-200 font-medium">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {!loading && !profileData ? (
         <div className="space-y-6">
           <ResumeUploader onUpload={handleResumeUpload} loading={loading} />
         </div>
-      ) : (
+      ) : profileData ? (
         <div className="space-y-6">
           {/* Profile Card with 3D Animation - Lazy loaded */}
           <Suspense fallback={<ProfileSkeleton />}>
@@ -131,7 +173,7 @@ export default function MyProfilePage() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

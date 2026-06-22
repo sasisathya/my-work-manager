@@ -23,8 +23,8 @@ export interface AsyncState<T> {
   error: Error | null;
 }
 
-export function useAsync<T, A extends any[] = []>(
-  asyncFunction: (...args: A) => Promise<T>,
+export function useAsync<T>(
+  asyncFunction: () => Promise<T>,
   immediate = false,
   dependencies: any[] = []
 ) {
@@ -34,15 +34,15 @@ export function useAsync<T, A extends any[] = []>(
     error: null,
   });
 
-  const executeRef = useRef<(...args: A) => Promise<T | null>>();
+  const executeRef = useRef<() => Promise<T | null>>();
 
   // Execute async function
   const execute = useCallback(
-    async (...args: A) => {
+    async () => {
       setState({ data: null, loading: true, error: null });
 
       try {
-        const response = await asyncFunction(...args);
+        const response = await asyncFunction();
         setState({ data: response, loading: false, error: null });
         return response;
       } catch (error) {

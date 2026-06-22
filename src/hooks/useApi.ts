@@ -203,7 +203,7 @@ export function useApiBatch<T = any>(
     error: null,
   });
 
-  const fetch = useCallback(async () => {
+  const batchFetch = useCallback(async (): Promise<T[] | undefined> => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
@@ -227,12 +227,19 @@ export function useApiBatch<T = any>(
           data: cachedResults,
           loading: false,
         }));
+        options.onSuccess?.(cachedResults);
         return cachedResults;
       }
 
       // Fetch uncached URLs in parallel
       const responses = await Promise.all(
-        uncachedUrls.map((url) => fetch(url))
+        uncachedUrls.map((url) =>
+          fetch(url)
+            .then((res) => res.json())
+            .catch((err) => {
+              throw err;
+            })
+        )
       );
 
       // Cache responses
@@ -263,9 +270,9 @@ export function useApiBatch<T = any>(
 
   useEffect(() => {
     if (!options.skip) {
-      fetch();
+      batchFetch();
     }
-  }, [options.skip, fetch]);
+  }, [options.skip, batchFetch]);
 
   return state;
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
+import path from 'path';
 import Anthropic from '@anthropic-ai/sdk';
 
 interface ParsedProfile {
@@ -59,7 +60,12 @@ interface ParsedProfile {
 
 async function extractTextFromPdf(filePath: string): Promise<string> {
   try {
-    const fileBuffer = await readFile(filePath);
+    // Resolve path to ensure it's absolute
+    const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
+
+    console.log('Attempting to read PDF from:', absolutePath);
+    const fileBuffer = await readFile(absolutePath);
+    console.log('Successfully read PDF file, size:', fileBuffer.length);
 
     // Dynamically import pdf-parse for Node.js compatibility
     const pdfParse = await import('pdf2json');
@@ -81,8 +87,7 @@ async function extractTextFromPdf(filePath: string): Promise<string> {
     });
   } catch (error) {
     console.error('Error extracting text from PDF:', error);
-    // Return a placeholder text if PDF parsing fails
-    return 'Unable to extract PDF content. Please ensure the PDF is valid.';
+    throw error;
   }
 }
 

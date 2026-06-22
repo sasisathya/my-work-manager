@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Settings, Loader2, CheckCircle2, ExternalLink, Sparkles, Database, AlertCircle, HelpCircle, TestTube, GitPullRequest, FileText } from 'lucide-react';
+import { Settings, Loader2, CheckCircle2, ExternalLink, Sparkles, Database, AlertCircle, HelpCircle, TestTube, GitPullRequest, FileText, Upload } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import ResumeUploadForm from '@/components/ResumeUploadForm';
 
 // Help Tooltip Component
 const HelpTooltip = ({ content }: { content: React.ReactNode }) => (
@@ -59,10 +60,25 @@ function SettingsContent() {
   const [confluenceTokenModified, setConfluenceTokenModified] = useState(false);
   const [confluenceTesting, setConfluenceTesting] = useState(false);
   const [confluenceTestSuccess, setConfluenceTestSuccess] = useState(false);
+  const [resumeStats, setResumeStats] = useState<any>(null);
+  const [resumeUploading, setResumeUploading] = useState(false);
 
   useEffect(() => {
     loadConfig();
+    fetchResumeStatus();
   }, []);
+
+  const fetchResumeStatus = async () => {
+    try {
+      const response = await fetch('/api/profile/status');
+      if (response.ok) {
+        const data = await response.json();
+        setResumeStats(data.stats);
+      }
+    } catch (err) {
+      console.error('Error fetching resume status:', err);
+    }
+  };
 
   useEffect(() => {
     if (highlightTab) {
@@ -518,7 +534,22 @@ function SettingsContent() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4">
+      <div className="flex gap-4 flex-wrap">
+        <button
+          onClick={() => setActiveTab('resume')}
+          className={`
+            px-6 py-3 rounded-xl font-semibold transition-all duration-300
+            ${activeTab === 'resume'
+              ? 'glass-button text-white'
+              : 'glass-card text-gray-300 hover:text-white'
+            }
+          `}
+        >
+          <Upload className="w-5 h-5 inline mr-2" />
+          Resume
+          {resumeStats?.hasCurrentResume && <CheckCircle2 className="w-4 h-4 inline ml-2 text-green-400" />}
+        </button>
+
         <button
           onClick={() => setActiveTab('jira')}
           className={`
@@ -615,6 +646,86 @@ function SettingsContent() {
           <div className="flex items-center gap-3">
             <AlertCircle className="w-6 h-6 text-red-400" />
             <p className="text-red-200 font-medium">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Resume Upload Tab */}
+      {activeTab === 'resume' && (
+        <div className="glass-card rounded-3xl p-8">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-2xl font-bold gradient-text mb-4">Resume Management</h3>
+              <p className="text-gray-300 mb-6">Upload and manage your professional resume</p>
+            </div>
+
+            {resumeStats?.hasCurrentResume ? (
+              <div className="space-y-6">
+                <div className="glass-card border-green-500/40 bg-gradient-to-r from-green-500/15 to-emerald-500/15 rounded-2xl p-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 mb-4">
+                      <CheckCircle2 className="w-6 h-6 text-green-400" />
+                      <p className="text-green-200 font-semibold">Resume Already Uploaded</p>
+                    </div>
+                    <p className="text-green-100 text-sm">
+                      Current resume: <code className="bg-green-900/30 px-2 py-1 rounded text-xs font-mono">resume-current.pdf</code>
+                    </p>
+                    {resumeStats?.lastUpdated && (
+                      <p className="text-green-100 text-sm">
+                        Last updated: {new Date(resumeStats.lastUpdated).toLocaleString()}
+                      </p>
+                    )}
+                    {resumeStats?.currentResumeSize && (
+                      <p className="text-green-100 text-sm">
+                        File size: {resumeStats.currentResumeSize.toFixed(2)} MB
+                      </p>
+                    )}
+                    {resumeStats?.archivedCount > 0 && (
+                      <p className="text-green-100 text-sm">
+                        Previous versions: {resumeStats.archivedCount} archived
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-600/40 pt-6">
+                  <h4 className="text-lg font-semibold text-gray-100 mb-4">Upload a New Resume</h4>
+                  <p className="text-gray-300 text-sm mb-4">
+                    Uploading a new resume will automatically archive your current one with a timestamp.
+                  </p>
+                  <ResumeUploadForm onUploadComplete={async () => {
+                    setSuccess('Resume uploaded successfully! Previous version archived.');
+                    await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for file system sync
+                    await fetchResumeStatus();
+                    setActiveTab('resume');
+                  }} />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="glass-card border-yellow-500/40 bg-gradient-to-r from-yellow-500/15 to-orange-500/15 rounded-2xl p-6">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-yellow-200 font-semibold mb-2">No Resume Uploaded</p>
+                      <p className="text-yellow-100 text-sm">
+                        You haven't uploaded a resume yet. Upload one now to create your professional profile.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <ResumeUploadForm onUploadComplete={async () => {
+                  console.log('Resume upload completed, fetching updated status');
+                  setSuccess('Resume uploaded successfully!');
+                  await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for file system sync
+                  console.log('Fetching resume status...');
+                  await fetchResumeStatus();
+                  console.log('Resume status fetched');
+                  setActiveTab('resume');
+                }} />
+              </div>
+            )}
           </div>
         </div>
       )}
