@@ -138,7 +138,7 @@ export default function Sidebar() {
             profileExpanded
               ? 'bg-gradient-to-r from-purple-600/30 to-pink-600/30 text-white'
               : 'text-gray-300 hover:bg-gray-600/20 hover:text-white'
-          }`}
+          } ${!expanded ? 'justify-center' : ''}`}
         >
           <div className="relative flex-shrink-0">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
