@@ -25,7 +25,8 @@ import {
   FileDiff,
   Plus,
   Minus,
-  FileQuestion
+  FileQuestion,
+  ChevronDown
 } from 'lucide-react';
 import SetupRequired from '@/components/SetupRequired';
 
@@ -44,6 +45,7 @@ export default function PRReviewPage() {
   const [selectedIssues, setSelectedIssues] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [configExists, setConfigExists] = useState<boolean | null>(null);
+  const [expandedAccordions, setExpandedAccordions] = useState<Set<string>>(new Set(['whatPRDoes', 'prDescription']));
 
   useEffect(() => {
     checkConfig();
@@ -108,6 +110,16 @@ export default function PRReviewPage() {
     setChecks(checks.map(check =>
       check.id === id ? { ...check, enabled: !check.enabled } : check
     ));
+  };
+
+  const toggleAccordion = (id: string) => {
+    const newExpanded = new Set(expandedAccordions);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedAccordions(newExpanded);
   };
 
   const handleAnalyze = async () => {
@@ -416,199 +428,204 @@ export default function PRReviewPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-2xl p-8 shadow-xl">
-        <div className="flex items-center gap-4">
-          <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-            <GitPullRequest className="w-8 h-8 text-gray-300" />
+    <div className="space-y-6">
+      {/* Compact Header with URL Input and Checks */}
+      <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
+        <div className="space-y-3">
+          {/* Title Row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <GitPullRequest className="w-5 h-5 text-gray-400" />
+              <h1 className="text-lg font-bold text-white">PR Review</h1>
+            </div>
+            <p className="text-xs text-gray-500">Code review for GitHub Pull Requests</p>
           </div>
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-2">PR Review</h1>
-            <p className="text-gray-400 text-lg">Code review for GitHub Pull Requests</p>
+
+          {/* Input Row */}
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <Input
+                id="prUrl"
+                type="url"
+                placeholder="https://github.com/owner/repo/pull/123"
+                value={prUrl}
+                onChange={(e) => setPrUrl(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && !analyzing && prUrl && handleAnalyze()}
+                className="w-full bg-gray-800 border border-gray-600 text-white placeholder:text-gray-500 h-9 text-sm rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500"
+              />
+            </div>
+            <Button
+              onClick={handleAnalyze}
+              disabled={analyzing || !prUrl}
+              className="bg-gray-700 hover:bg-gray-600 text-white font-bold px-4 h-9 rounded-lg border border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap text-sm"
+            >
+              {analyzing ? (
+                <>
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  Analyzing
+                </>
+              ) : (
+                <>
+                  <FileCode className="w-3 h-3 mr-1" />
+                  Analyze
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Review Checks Row - Compact horizontal layout */}
+          <div className="pt-2 border-t border-gray-700">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-400 font-semibold">Checks:</span>
+              {checks.map((check) => {
+                const Icon = check.icon;
+                return (
+                  <button
+                    key={check.id}
+                    onClick={() => toggleCheck(check.id)}
+                    className={`
+                      flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-all cursor-pointer
+                      ${check.enabled
+                        ? 'bg-gray-700 border border-gray-500 text-white'
+                        : 'bg-gray-800 border border-gray-700 text-gray-500 opacity-60 hover:opacity-100'
+                      }
+                    `}
+                    title={check.description}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{check.name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Input Section */}
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8">
-        <div className="space-y-6">
-          <div>
-            <Label htmlFor="prUrl" className="text-gray-200 font-semibold text-base mb-3 block">
-              GitHub Pull Request URL
-            </Label>
-            <Input
-              id="prUrl"
-              type="url"
-              placeholder="https://github.com/owner/repo/pull/123"
-              value={prUrl}
-              onChange={(e) => setPrUrl(e.target.value)}
-              className="bg-gray-800 border border-gray-600 text-white placeholder:text-gray-500 h-12 text-base rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500"
-            />
-            <p className="text-xs text-gray-500 mt-2 ml-2">
-              Enter the full URL of the GitHub PR you want to review
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Review Checks */}
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8">
-        <h2 className="text-2xl font-bold text-white mb-6">Select Review Checks</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {checks.map((check) => {
-            const Icon = check.icon;
-            return (
-              <div
-                key={check.id}
-                onClick={() => toggleCheck(check.id)}
-                className={`
-                  bg-gray-800 rounded-xl p-5 cursor-pointer transition-all duration-200 hover:bg-gray-750
-                  ${check.enabled
-                    ? 'border-2 border-gray-500'
-                    : 'border border-gray-700 opacity-60 hover:opacity-100'
-                  }
-                `}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`
-                    w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-1
-                    ${check.enabled ? 'bg-gray-600' : 'bg-gray-700'}
-                  `}>
-                    {check.enabled && <CheckCircle2 className="w-4 h-4 text-white" />}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Icon className={`w-5 h-5 ${check.enabled ? 'text-gray-300' : 'text-gray-500'}`} />
-                      <h3 className={`font-semibold ${check.enabled ? 'text-white' : 'text-gray-400'}`}>
-                        {check.name}
-                      </h3>
-                    </div>
-                    <p className="text-xs text-gray-500">{check.description}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Analyze Button */}
-      <div className="flex justify-center">
-        <Button
-          onClick={handleAnalyze}
-          disabled={analyzing || !prUrl}
-          className="bg-gray-700 hover:bg-gray-600 text-white font-bold text-lg py-6 px-12 rounded-xl border border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {analyzing ? (
-            <>
-              <Loader2 className="w-6 h-6 mr-3 animate-spin" />
-              Analyzing PR...
-            </>
-          ) : (
-            <>
-              <FileCode className="w-6 h-6 mr-3" />
-              Analyze Pull Request
-            </>
-          )}
-        </Button>
       </div>
 
       {/* Results Section */}
       {reviewResults && (
-        <div className="space-y-8">
-          {/* What This PR Does Section */}
-          {reviewResults.results.whatThisPRDoes && (
-            <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-600 rounded-2xl p-8 shadow-xl">
-              <div className="flex items-center gap-3 mb-6">
-                <FileText className="w-7 h-7 text-gray-300" />
-                <h2 className="text-2xl font-bold text-white">What This PR Does</h2>
-              </div>
-              <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 mb-4">
-                <p className="text-gray-200 text-base leading-relaxed">{reviewResults.results.whatThisPRDoes}</p>
-              </div>
+        <div className="space-y-4">
+          {/* Side by Side Accordions */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* What This PR Does Accordion */}
+            {reviewResults.results.whatThisPRDoes && (
+              <div className="bg-gray-900 border border-gray-600 rounded-xl overflow-hidden shadow-lg">
+                <button
+                  onClick={() => toggleAccordion('whatPRDoes')}
+                  className="w-full flex items-center justify-between gap-2 p-4 hover:bg-gray-850 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-gray-300" />
+                    <h2 className="text-lg font-bold text-white">What This PR Does</h2>
+                  </div>
+                  <ChevronDown
+                    className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${
+                      expandedAccordions.has('whatPRDoes') ? 'transform rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                {expandedAccordions.has('whatPRDoes') && (
+                  <div className="border-t border-gray-700 px-4 pb-4">
+                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 mb-3 mt-3">
+                      <p className="text-gray-200 text-sm leading-relaxed">{reviewResults.results.whatThisPRDoes}</p>
+                    </div>
 
-              {reviewResults.results.keyChanges && reviewResults.results.keyChanges.length > 0 && (
-                <>
-                  <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                    <GitCommit className="w-5 h-5 text-gray-400" />
-                    Key Changes
-                  </h3>
-                  <ul className="space-y-2">
-                    {reviewResults.results.keyChanges.map((change: string, idx: number) => (
-                      <li key={idx} className="flex items-start gap-3 text-gray-300">
-                        <CheckCircle2 className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm">{change}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* PR Description Section */}
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <FileText className="w-7 h-7 text-gray-400" />
-              <h2 className="text-2xl font-bold text-white">PR Description</h2>
-            </div>
-
-            {reviewResults.pr.description ? (
-              <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
-                <pre className="text-gray-300 whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                  {reviewResults.pr.description}
-                </pre>
-              </div>
-            ) : (
-              <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 flex items-center gap-3">
-                <FileQuestion className="w-6 h-6 text-gray-500" />
-                <p className="text-gray-400 italic">No description provided for this PR</p>
+                    {reviewResults.results.keyChanges && reviewResults.results.keyChanges.length > 0 && (
+                      <>
+                        <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+                          <GitCommit className="w-4 h-4 text-gray-400" />
+                          Key Changes
+                        </h3>
+                        <ul className="space-y-1">
+                          {reviewResults.results.keyChanges.map((change: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-2 text-gray-300">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                              <span className="text-xs">{change}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
-            {/* PR Stats */}
-            <div className="grid grid-cols-3 gap-4 mt-6">
-              <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 text-center">
-                <FileDiff className="w-6 h-6 text-gray-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-white">{reviewResults.pr.stats?.totalFiles || reviewResults.pr.files?.length || 0}</p>
-                <p className="text-xs text-gray-500">Files Changed</p>
-              </div>
-              <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 text-center">
-                <Plus className="w-6 h-6 text-green-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-green-400">+{reviewResults.pr.stats?.totalAdditions || 0}</p>
-                <p className="text-xs text-gray-500">Additions</p>
-              </div>
-              <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 text-center">
-                <Minus className="w-6 h-6 text-red-400 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-red-400">-{reviewResults.pr.stats?.totalDeletions || 0}</p>
-                <p className="text-xs text-gray-500">Deletions</p>
-              </div>
+            {/* PR Description Accordion */}
+            <div className="bg-gray-900 border border-gray-700 rounded-xl overflow-hidden">
+              <button
+                onClick={() => toggleAccordion('prDescription')}
+                className="w-full flex items-center justify-between gap-2 p-4 hover:bg-gray-850 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-gray-400" />
+                  <h2 className="text-lg font-bold text-white">PR Description</h2>
+                </div>
+                <ChevronDown
+                  className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${
+                    expandedAccordions.has('prDescription') ? 'transform rotate-180' : ''
+                  }`}
+                />
+              </button>
+              {expandedAccordions.has('prDescription') && (
+                <div className="border-t border-gray-700 px-4 pb-4">
+                  {reviewResults.pr.description ? (
+                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 mb-3 mt-3">
+                      <pre className="text-gray-300 whitespace-pre-wrap font-sans text-xs leading-relaxed">
+                        {reviewResults.pr.description}
+                      </pre>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 mb-3 mt-3 flex items-center gap-2">
+                      <FileQuestion className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      <p className="text-gray-400 italic text-xs">No description provided for this PR</p>
+                    </div>
+                  )}
+
+                  {/* PR Stats */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-center">
+                      <FileDiff className="w-4 h-4 text-gray-400 mx-auto mb-1" />
+                      <p className="text-lg font-bold text-white">{reviewResults.pr.stats?.totalFiles || reviewResults.pr.files?.length || 0}</p>
+                      <p className="text-xs text-gray-500">Files Changed</p>
+                    </div>
+                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-center">
+                      <Plus className="w-4 h-4 text-green-400 mx-auto mb-1" />
+                      <p className="text-lg font-bold text-green-400">+{reviewResults.pr.stats?.totalAdditions || 0}</p>
+                      <p className="text-xs text-gray-500">Additions</p>
+                    </div>
+                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-center">
+                      <Minus className="w-4 h-4 text-red-400 mx-auto mb-1" />
+                      <p className="text-lg font-bold text-red-400">-{reviewResults.pr.stats?.totalDeletions || 0}</p>
+                      <p className="text-xs text-gray-500">Deletions</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Files Changed Section */}
           {reviewResults.pr.files && reviewResults.pr.files.length > 0 && (
-            <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <FileDiff className="w-7 h-7 text-gray-400" />
-                <h2 className="text-2xl font-bold text-white">Files Changed</h2>
+            <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <FileDiff className="w-5 h-5 text-gray-400" />
+                <h2 className="text-lg font-bold text-white">Files Changed</h2>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {reviewResults.pr.files.map((file: any, idx: number) => (
-                  <div key={idx} className="bg-gray-800 border border-gray-700 rounded-xl p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1">
-                      <FileCode className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                  <div key={idx} className="bg-gray-800 border border-gray-700 rounded-lg p-3 flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <FileCode className="w-4 h-4 text-gray-400 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-white font-mono text-sm truncate">{file.filename}</p>
+                        <p className="text-white font-mono text-xs truncate">{file.filename}</p>
                         <p className="text-xs text-gray-500 capitalize">{file.status}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-3 text-xs ml-2 flex-shrink-0">
                       <span className="text-green-400">+{file.additions}</span>
                       <span className="text-red-400">-{file.deletions}</span>
-                      <span className="text-gray-500">{file.changes} changes</span>
                     </div>
                   </div>
                 ))}
@@ -616,69 +633,69 @@ export default function PRReviewPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Left Section - PR Summary */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <GitPullRequest className="w-6 h-6 text-gray-400" />
+          <div className="lg:col-span-1 space-y-4">
+            <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
+              <h2 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                <GitPullRequest className="w-4 h-4 text-gray-400" />
                 PR Information
               </h2>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <FileText className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" />
-                  <div>
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
                     <p className="text-xs text-gray-500">Title</p>
-                    <p className="text-white font-medium">{reviewResults.pr.title}</p>
+                    <p className="text-white font-medium text-xs">{reviewResults.pr.title}</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <User className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" />
-                  <div>
+                <div className="flex items-start gap-2">
+                  <User className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
                     <p className="text-xs text-gray-500">Author</p>
-                    <p className="text-white font-medium">{reviewResults.pr.author}</p>
+                    <p className="text-white font-medium text-xs">{reviewResults.pr.author}</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <GitBranch className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" />
-                  <div>
+                <div className="flex items-start gap-2">
+                  <GitBranch className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
                     <p className="text-xs text-gray-500">Branch</p>
-                    <p className="text-white font-medium">{reviewResults.pr.branch} → {reviewResults.pr.baseBranch}</p>
+                    <p className="text-white font-medium text-xs truncate">{reviewResults.pr.branch} → {reviewResults.pr.baseBranch}</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <GitCommit className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" />
-                  <div>
+                <div className="flex items-start gap-2">
+                  <GitCommit className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
                     <p className="text-xs text-gray-500">Repository</p>
-                    <p className="text-white font-medium">{reviewResults.pr.owner}/{reviewResults.pr.repo}</p>
+                    <p className="text-white font-medium text-xs">{reviewResults.pr.owner}/{reviewResults.pr.repo}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Overall Score</h2>
+            <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
+              <h2 className="text-sm font-bold text-white mb-3">Overall Score</h2>
               <div className="flex items-center justify-center">
-                <div className="relative w-32 h-32">
-                  <svg className="transform -rotate-90 w-32 h-32">
+                <div className="relative w-24 h-24">
+                  <svg className="transform -rotate-90 w-24 h-24">
                     <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
+                      cx="48"
+                      cy="48"
+                      r="40"
                       stroke="currentColor"
-                      strokeWidth="8"
+                      strokeWidth="6"
                       fill="transparent"
                       className="text-gray-800"
                     />
                     <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
+                      cx="48"
+                      cy="48"
+                      r="40"
                       stroke="currentColor"
-                      strokeWidth="8"
+                      strokeWidth="6"
                       fill="transparent"
-                      strokeDasharray={`${2 * Math.PI * 56}`}
-                      strokeDashoffset={`${2 * Math.PI * 56 * (1 - reviewResults.results.overallScore / 10)}`}
+                      strokeDasharray={`${2 * Math.PI * 40}`}
+                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - reviewResults.results.overallScore / 10)}`}
                       className={`${
                         reviewResults.results.overallScore >= 8 ? 'text-gray-400' :
                         reviewResults.results.overallScore >= 6 ? 'text-gray-500' :
@@ -689,13 +706,13 @@ export default function PRReviewPage() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-3xl font-bold text-white">
+                    <span className="text-2xl font-bold text-white">
                       {reviewResults.results.overallScore}/10
                     </span>
                   </div>
                 </div>
               </div>
-              <p className="text-center text-gray-400 mt-4 text-sm">
+              <p className="text-center text-gray-400 mt-2 text-xs">
                 {reviewResults.results.overallScore >= 8 ? 'Excellent' :
                  reviewResults.results.overallScore >= 6 ? 'Good' :
                  reviewResults.results.overallScore >= 4 ? 'Needs Work' :
@@ -703,37 +720,37 @@ export default function PRReviewPage() {
               </p>
             </div>
 
-            <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Actions</h2>
-              <div className="space-y-3">
+            <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
+              <h2 className="text-sm font-bold text-white mb-2">Actions</h2>
+              <div className="space-y-2">
                 <Button
                   onClick={copyAllResults}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl border border-blue-500 transition-colors"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg border border-blue-500 transition-colors text-xs"
                 >
-                  <MessageSquare className="w-5 h-5 mr-2" />
+                  <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
                   Copy for AI Fix
                 </Button>
                 <Button
                   onClick={exportToMarkdown}
-                  className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-xl border border-gray-600 transition-colors"
+                  className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 rounded-lg border border-gray-600 transition-colors text-xs"
                 >
-                  <Download className="w-5 h-5 mr-2" />
+                  <Download className="w-3.5 h-3.5 mr-1.5" />
                   Export as Markdown
                 </Button>
               </div>
             </div>
 
             {reviewResults.results.positives && reviewResults.results.positives.length > 0 && (
-              <div className="bg-gray-900 border border-gray-600 rounded-2xl p-6">
-                <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <CheckCircle2 className="w-6 h-6 text-gray-400" />
+              <div className="bg-gray-900 border border-gray-600 rounded-xl p-4">
+                <h2 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-gray-400" />
                   Positives
                 </h2>
-                <ul className="space-y-2">
+                <ul className="space-y-1">
                   {reviewResults.results.positives.map((positive: string, idx: number) => (
-                    <li key={idx} className="flex items-start gap-2 text-gray-300">
-                      <CheckCircle2 className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
-                      <span className="text-sm">{positive}</span>
+                    <li key={idx} className="flex items-start gap-1.5 text-gray-300">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <span className="text-xs">{positive}</span>
                     </li>
                   ))}
                 </ul>
@@ -743,47 +760,47 @@ export default function PRReviewPage() {
 
           {/* Right Section - Issues */}
           <div className="lg:col-span-2">
-            <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                  <MessageSquare className="w-7 h-7 text-gray-400" />
+            <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-gray-400" />
                   Review Results
-                </h2>
-                <div className="flex items-center gap-3">
+                </h3>
+                <div className="flex items-center gap-2 flex-wrap justify-end">
                   {reviewResults.results.issues && reviewResults.results.issues.length > 0 && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5">
                       <Button
                         onClick={selectAllIssues}
-                        className="bg-gray-700 hover:bg-gray-600 text-white text-xs px-3 py-1.5 rounded-lg border border-gray-600"
+                        className="bg-gray-700 hover:bg-gray-600 text-white text-xs px-2 py-0.5 rounded-md border border-gray-600"
                       >
                         Select All
                       </Button>
                       <Button
                         onClick={deselectAllIssues}
-                        className="bg-gray-700 hover:bg-gray-600 text-white text-xs px-3 py-1.5 rounded-lg border border-gray-600"
+                        className="bg-gray-700 hover:bg-gray-600 text-white text-xs px-2 py-0.5 rounded-md border border-gray-600"
                       >
-                        Deselect All
+                        Deselect
                       </Button>
                     </div>
                   )}
-                  <div className="text-sm text-gray-500">
-                    {reviewResults.results.issues?.length || 0} issue(s) found
+                  <div className="text-xs text-gray-500 whitespace-nowrap">
+                    {reviewResults.results.issues?.length || 0} issue(s)
                     {selectedIssues.size > 0 && ` · ${selectedIssues.size} selected`}
                   </div>
                 </div>
               </div>
 
-              <div className="mb-6 p-4 bg-gray-800 border border-gray-700 rounded-xl">
-                <p className="text-gray-300">{reviewResults.results.summary}</p>
+              <div className="mb-4 p-3 bg-gray-800 border border-gray-700 rounded-lg">
+                <p className="text-gray-300 text-sm">{reviewResults.results.summary}</p>
               </div>
 
               {reviewResults.results.issues && reviewResults.results.issues.length > 0 ? (
                 <>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {reviewResults.results.issues.map((issue: any, idx: number) => (
                       <div
                         key={idx}
-                        className={`bg-gray-800 rounded-xl p-5 border transition-all ${
+                        className={`bg-gray-800 rounded-lg p-3 border transition-all ${
                           selectedIssues.has(idx) ? 'border-blue-500 bg-blue-950/20' :
                           issue.severity === 'CRITICAL' ? 'border-red-900 bg-red-950/30' :
                           issue.severity === 'HIGH' ? 'border-orange-900 bg-orange-950/30' :
@@ -791,23 +808,23 @@ export default function PRReviewPage() {
                           'border-gray-600'
                         }`}
                       >
-                        <div className="flex items-start gap-4 mb-3">
+                        <div className="flex items-start gap-2 mb-2">
                           <input
                             type="checkbox"
                             checked={selectedIssues.has(idx)}
                             onChange={() => toggleIssueSelection(idx)}
-                            className="w-5 h-5 mt-1 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900 cursor-pointer"
+                            className="w-4 h-4 mt-0.5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900 cursor-pointer flex-shrink-0"
                           />
-                          <div className="flex items-start gap-3 flex-1">
-                            <AlertTriangle className={`w-5 h-5 mt-1 flex-shrink-0 ${
+                          <div className="flex items-start gap-2 flex-1">
+                            <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
                               issue.severity === 'CRITICAL' ? 'text-red-400' :
                               issue.severity === 'HIGH' ? 'text-orange-400' :
                               issue.severity === 'MEDIUM' ? 'text-yellow-400' :
                               'text-gray-400'
                             }`} />
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className={`px-2 py-1 rounded-md text-xs font-bold ${
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                                <span className={`px-1.5 py-0.5 rounded text-xs font-bold whitespace-nowrap ${
                                   issue.severity === 'CRITICAL' ? 'bg-red-900 text-red-200' :
                                   issue.severity === 'HIGH' ? 'bg-orange-900 text-orange-200' :
                                   issue.severity === 'MEDIUM' ? 'bg-yellow-900 text-yellow-200' :
@@ -815,26 +832,26 @@ export default function PRReviewPage() {
                                 }`}>
                                   {issue.severity}
                                 </span>
-                                <span className="px-2 py-1 rounded-md text-xs font-medium bg-gray-700 text-gray-300">
+                                <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-700 text-gray-300">
                                   {issue.category}
                                 </span>
                               </div>
-                              <p className="text-sm text-gray-400 mb-2">
-                                <code className="bg-gray-950 px-2 py-1 rounded border border-gray-700">{issue.file}:{issue.line}</code>
+                              <p className="text-xs text-gray-400 mb-1.5">
+                                <code className="bg-gray-950 px-1.5 py-0.5 rounded border border-gray-700 text-xs">{issue.file}:{issue.line}</code>
                               </p>
-                              <p className="text-white font-medium mb-2">{issue.issue}</p>
-                              <div className="bg-gray-950 p-3 rounded-lg border border-gray-700">
-                                <p className="text-xs text-gray-500 mb-1">Suggestion:</p>
-                                <p className="text-sm text-gray-300">{issue.suggestion}</p>
+                              <p className="text-white font-medium text-sm mb-1.5">{issue.issue}</p>
+                              <div className="bg-gray-950 p-2 rounded border border-gray-700">
+                                <p className="text-xs text-gray-500 mb-0.5">Suggestion:</p>
+                                <p className="text-xs text-gray-300">{issue.suggestion}</p>
                               </div>
                             </div>
                           </div>
                           <Button
                             onClick={() => addCommentToGitHub(issue)}
-                            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 border border-gray-600 transition-colors"
+                            className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-gray-600 transition-colors flex-shrink-0 text-xs"
                             title="Add this comment to GitHub PR"
                           >
-                            <Send className="w-4 h-4" />
+                            <Send className="w-3.5 h-3.5" />
                             Add Comment
                           </Button>
                         </div>
@@ -843,21 +860,21 @@ export default function PRReviewPage() {
                   </div>
 
                   {selectedIssues.size > 0 && (
-                    <div className="mt-6 flex justify-center">
+                    <div className="mt-4 flex justify-center">
                       <Button
                         onClick={submitSelectedComments}
                         disabled={submitting}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-4 px-8 rounded-xl border border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-2.5 px-6 rounded-lg border border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         {submitting ? (
                           <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
                             Submitting {selectedIssues.size} comment(s)...
                           </>
                         ) : (
                           <>
-                            <Send className="w-5 h-5 mr-2" />
-                            Submit {selectedIssues.size} Selected Comment(s) to GitHub
+                            <Send className="w-4 h-4 mr-1.5" />
+                            Submit {selectedIssues.size} Comment(s)
                           </>
                         )}
                       </Button>
@@ -865,16 +882,16 @@ export default function PRReviewPage() {
                   )}
                 </>
               ) : (
-                <div className="text-center py-12">
-                  <CheckCircle2 className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                  <p className="text-xl font-semibold text-white">No issues found</p>
-                  <p className="text-gray-400 mt-2">This PR looks good to merge</p>
+                <div className="text-center py-8">
+                  <CheckCircle2 className="w-12 h-12 text-gray-500 mx-auto mb-2" />
+                  <p className="text-lg font-semibold text-white">No issues found</p>
+                  <p className="text-gray-400 text-sm mt-1">This PR looks good to merge</p>
                 </div>
               )}
 
               {reviewResults.results.note && (
-                <div className="mt-6 p-4 bg-gray-800 border border-gray-700 rounded-xl">
-                  <p className="text-sm text-gray-400 italic">{reviewResults.results.note}</p>
+                <div className="mt-3 p-2.5 bg-gray-800 border border-gray-700 rounded-lg">
+                  <p className="text-xs text-gray-400 italic">{reviewResults.results.note}</p>
                 </div>
               )}
             </div>

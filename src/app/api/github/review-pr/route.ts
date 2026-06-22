@@ -36,10 +36,19 @@ export async function POST(request: NextRequest) {
     let reviewResults;
     if (hasAI) {
       // Use AI for advanced analysis
-      reviewResults = await analyzePRWithAI(prData, checks, config);
+      try {
+        reviewResults = await analyzePRWithAI(prData, checks, config);
+      } catch (aiError: any) {
+        // If AI fails, fall back to basic analysis
+        console.warn('AI analysis failed, falling back to basic analysis:', aiError.message);
+        reviewResults = performBasicAnalysis(prData, checks);
+        reviewResults.note = `Basic analysis used (AI failed: ${aiError.message})`;
+      }
     } else {
       // Use basic static analysis without AI
+      console.log('AI not configured, using basic static analysis');
       reviewResults = performBasicAnalysis(prData, checks);
+      reviewResults.note = 'Basic static analysis (AI not configured)';
     }
 
     return NextResponse.json({
@@ -262,12 +271,25 @@ async function analyzeWithClaude(prompt: string, apiKey: string) {
 
   console.log('Using Claude endpoint for PR review:', apiEndpoint);
   console.log('Using model for PR review:', modelName);
+  console.log('API Key provided:', apiKey ? `${apiKey.substring(0, 10)}...` : 'EMPTY');
 
   // Create abort controller for timeout
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
 
   try {
+    const requestBody = {
+      model: modelName,
+      max_tokens: 8192,
+      messages: [
+        {
+          role: 'user',
+          content: `${prompt}\n\nProvide your response as valid JSON only, no additional text.`,
+        },
+      ],
+      temperature: 0.3,
+    };
+
     const response = await fetch(apiEndpoint, {
       method: 'POST',
       headers: {
@@ -275,29 +297,22 @@ async function analyzeWithClaude(prompt: string, apiKey: string) {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify({
-        model: modelName,
-        max_tokens: 8192,
-        messages: [
-          {
-            role: 'user',
-            content: `${prompt}\n\nProvide your response as valid JSON only, no additional text.`,
-          },
-        ],
-        temperature: 0.3,
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`Claude API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Claude API error response:', errorText);
+      throw new Error(`Claude API error: ${response.status} - ${errorText}`);
     }
 
     return await parseClaudeResponse(response);
   } catch (error: any) {
     clearTimeout(timeoutId);
+    console.error('Claude API call failed:', error.message);
     if (error.name === 'AbortError') {
       throw new Error('Claude API request timed out after 120 seconds');
     }

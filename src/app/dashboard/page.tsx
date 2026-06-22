@@ -76,142 +76,142 @@ export default function DashboardPage() {
       </div>
 
       {/* Navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {/* GCloud Card - Most Used */}
         <button
           onClick={() => router.push('/dashboard/gcloud')}
-          className="glass-card rounded-3xl p-8 glow hover:scale-105 transition-all duration-300 text-left group cursor-pointer"
+          className="glass-card rounded-2xl p-4 glow hover:scale-105 transition-all duration-300 text-left group cursor-pointer"
         >
-          <div className="relative mb-6">
+          <div className="relative mb-3">
             <div className="absolute inset-0 blur-2xl bg-cyan-500/30 group-hover:bg-cyan-500/50 transition-all" />
-            <div className="relative bg-cyan-500/20 rounded-2xl p-6 group-hover:bg-cyan-500/30 transition-all">
-              <Cloud className="w-16 h-16 text-cyan-400" />
+            <div className="relative bg-cyan-500/20 rounded-xl p-3 group-hover:bg-cyan-500/30 transition-all">
+              <Cloud className="w-8 h-8 text-cyan-400" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3 group-hover:gradient-text transition-all">
+          <h2 className="text-sm font-bold text-white mb-1 group-hover:gradient-text transition-all">
             GCloud/K8s
           </h2>
-          <p className="text-gray-300 mb-4">
-            Kubernetes terminal with pod management and log search
+          <p className="text-gray-400 text-xs mb-2">
+            Kubernetes & pod management
           </p>
-          <div className="flex items-center gap-2 text-cyan-400 font-semibold">
-            <span>Open Workspace</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+          <div className="flex items-center gap-1 text-cyan-400 font-semibold text-xs">
+            <span>Open</span>
+            <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
           </div>
         </button>
 
         {/* JIRA Card */}
         <button
           onClick={() => router.push('/dashboard/jira')}
-          className="glass-card rounded-3xl p-8 glow hover:scale-105 transition-all duration-300 text-left group cursor-pointer"
+          className="glass-card rounded-2xl p-4 glow hover:scale-105 transition-all duration-300 text-left group cursor-pointer"
         >
-          <div className="relative mb-6">
+          <div className="relative mb-3">
             <div className="absolute inset-0 blur-2xl bg-blue-500/30 group-hover:bg-blue-500/50 transition-all" />
-            <div className="relative bg-blue-500/20 rounded-2xl p-6 group-hover:bg-blue-500/30 transition-all">
-              <Database className="w-16 h-16 text-blue-400" />
+            <div className="relative bg-blue-500/20 rounded-xl p-3 group-hover:bg-blue-500/30 transition-all">
+              <Database className="w-8 h-8 text-blue-400" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3 group-hover:gradient-text transition-all">
+          <h2 className="text-sm font-bold text-white mb-1 group-hover:gradient-text transition-all">
             JIRA
           </h2>
-          <p className="text-gray-300 mb-4">
-            Manage your Jira issues with AI-powered enhancements
+          <p className="text-gray-400 text-xs mb-2">
+            Manage Jira issues
           </p>
-          <div className="flex items-center gap-2 text-blue-400 font-semibold">
-            <span>Open Workspace</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+          <div className="flex items-center gap-1 text-blue-400 font-semibold text-xs">
+            <span>Open</span>
+            <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
           </div>
         </button>
 
         {/* GIT Card */}
         <button
           onClick={() => router.push('/dashboard/pr-review')}
-          className="glass-card rounded-3xl p-8 glow hover:scale-105 transition-all duration-300 text-left group cursor-pointer"
+          className="glass-card rounded-2xl p-4 glow hover:scale-105 transition-all duration-300 text-left group cursor-pointer"
         >
-          <div className="relative mb-6">
+          <div className="relative mb-3">
             <div className="absolute inset-0 blur-2xl bg-green-500/30 group-hover:bg-green-500/50 transition-all" />
-            <div className="relative bg-green-500/20 rounded-2xl p-6 group-hover:bg-green-500/30 transition-all">
-              <GitBranch className="w-16 h-16 text-green-400" />
+            <div className="relative bg-green-500/20 rounded-xl p-3 group-hover:bg-green-500/30 transition-all">
+              <GitBranch className="w-8 h-8 text-green-400" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3 group-hover:gradient-text transition-all">
-            GIT
+          <h2 className="text-sm font-bold text-white mb-1 group-hover:gradient-text transition-all">
+            GIT PR Review
           </h2>
-          <p className="text-gray-300 mb-4">
-            Review pull requests with AI-powered code analysis
+          <p className="text-gray-400 text-xs mb-2">
+            Analyze pull requests
           </p>
-          <div className="flex items-center gap-2 text-green-400 font-semibold">
-            <span>Open Workspace</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+          <div className="flex items-center gap-1 text-green-400 font-semibold text-xs">
+            <span>Open</span>
+            <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
           </div>
         </button>
 
         {/* File Viewer Card */}
         <button
           onClick={() => router.push('/dashboard/md-editor')}
-          className="glass-card rounded-3xl p-8 glow hover:scale-105 transition-all duration-300 text-left group cursor-pointer"
+          className="glass-card rounded-2xl p-4 glow hover:scale-105 transition-all duration-300 text-left group cursor-pointer"
         >
-          <div className="relative mb-6">
+          <div className="relative mb-3">
             <div className="absolute inset-0 blur-2xl bg-gray-500/30 group-hover:bg-gray-400/50 transition-all" />
-            <div className="relative bg-gray-500/20 rounded-2xl p-6 group-hover:bg-gray-400/30 transition-all">
-              <FileEdit className="w-16 h-16 text-gray-300" />
+            <div className="relative bg-gray-500/20 rounded-xl p-3 group-hover:bg-gray-400/30 transition-all">
+              <FileEdit className="w-8 h-8 text-gray-300" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3 group-hover:gradient-text transition-all">
-            File Viewer
+          <h2 className="text-sm font-bold text-white mb-1 group-hover:gradient-text transition-all">
+            File Editor
           </h2>
-          <p className="text-gray-300 mb-4">
-            View PDF, Excel, Word files and edit Markdown/HTML with AI
+          <p className="text-gray-400 text-xs mb-2">
+            View & edit files
           </p>
-          <div className="flex items-center gap-2 text-gray-300 font-semibold">
-            <span>Open Workspace</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+          <div className="flex items-center gap-1 text-gray-300 font-semibold text-xs">
+            <span>Open</span>
+            <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
           </div>
         </button>
 
         {/* My Tasks Card */}
         <button
           onClick={() => router.push('/dashboard/tasks')}
-          className="glass-card rounded-3xl p-8 glow hover:scale-105 transition-all duration-300 text-left group cursor-pointer"
+          className="glass-card rounded-2xl p-4 glow hover:scale-105 transition-all duration-300 text-left group cursor-pointer"
         >
-          <div className="relative mb-6">
+          <div className="relative mb-3">
             <div className="absolute inset-0 blur-2xl bg-yellow-500/30 group-hover:bg-yellow-500/50 transition-all" />
-            <div className="relative bg-yellow-500/20 rounded-2xl p-6 group-hover:bg-yellow-500/30 transition-all">
-              <StickyNote className="w-16 h-16 text-yellow-400" />
+            <div className="relative bg-yellow-500/20 rounded-xl p-3 group-hover:bg-yellow-500/30 transition-all">
+              <StickyNote className="w-8 h-8 text-yellow-400" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3 group-hover:gradient-text transition-all">
+          <h2 className="text-sm font-bold text-white mb-1 group-hover:gradient-text transition-all">
             My Tasks
           </h2>
-          <p className="text-gray-300 mb-4">
-            Create and manage sticky notes for your tasks
+          <p className="text-gray-400 text-xs mb-2">
+            Manage tasks & notes
           </p>
-          <div className="flex items-center gap-2 text-yellow-400 font-semibold">
-            <span>Open Workspace</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+          <div className="flex items-center gap-1 text-yellow-400 font-semibold text-xs">
+            <span>Open</span>
+            <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
           </div>
         </button>
 
         {/* Docker/Kafka Card */}
         <button
           onClick={() => router.push('/dashboard/docker')}
-          className="glass-card rounded-3xl p-8 glow hover:scale-105 transition-all duration-300 text-left group cursor-pointer"
+          className="glass-card rounded-2xl p-4 glow hover:scale-105 transition-all duration-300 text-left group cursor-pointer"
         >
-          <div className="relative mb-6">
+          <div className="relative mb-3">
             <div className="absolute inset-0 blur-2xl bg-purple-500/30 group-hover:bg-purple-500/50 transition-all" />
-            <div className="relative bg-purple-500/20 rounded-2xl p-6 group-hover:bg-purple-500/30 transition-all">
-              <Container className="w-16 h-16 text-purple-400" />
+            <div className="relative bg-purple-500/20 rounded-xl p-3 group-hover:bg-purple-500/30 transition-all">
+              <Container className="w-8 h-8 text-purple-400" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3 group-hover:gradient-text transition-all">
-            Docker/Kafka
+          <h2 className="text-sm font-bold text-white mb-1 group-hover:gradient-text transition-all">
+            Docker
           </h2>
-          <p className="text-gray-300 mb-4">
-            Manage Docker containers and Kafka services with one click
+          <p className="text-gray-400 text-xs mb-2">
+            Manage containers
           </p>
-          <div className="flex items-center gap-2 text-purple-400 font-semibold">
-            <span>Open Workspace</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+          <div className="flex items-center gap-1 text-purple-400 font-semibold text-xs">
+            <span>Open</span>
+            <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
           </div>
         </button>
       </div>

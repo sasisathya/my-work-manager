@@ -57,7 +57,14 @@
       "Bash(git rev-parse:*)",
       "Bash(git init:*)",
       "Bash(gh repo create:*)",
-      "Bash(gh config set:*)"
+      "Bash(gh config set:*)",
+      "Bash(git grep:*)",
+      "Bash(npm config list:*)",
+      "Bash(npm config:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(.gitignore)",
+      "Bash(git rm:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

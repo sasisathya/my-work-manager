@@ -94,102 +94,46 @@ export default function JiraPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header Section */}
-      <div className="glass-card rounded-3xl p-8 shimmer">
-        <div className="flex items-center gap-4 mb-4">
+    <div className="space-y-4">
+      {/* Compact Header Section with Stats */}
+      <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold text-white">Your Tickets</h1>
+            <p className="text-xs text-gray-500">Manage your Jira tickets</p>
+          </div>
           <Button
-            onClick={() => router.push('/dashboard')}
-            className="glass-button rounded-xl"
+            onClick={fetchIssues}
+            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Back
+            <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
           </Button>
-          <div className="flex-1">
-            <h1 className="text-4xl font-bold gradient-text mb-2">
-              Jira Workspace
-            </h1>
-            <p className="text-gray-200 text-lg">
-              Manage your Jira tickets with AI-powered enhancements
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="glass-card rounded-2xl p-6 glow hover:scale-105 transition-transform duration-300">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm text-gray-300 mb-1 font-medium">Total Issues</p>
-              <p className="text-4xl font-bold gradient-text">{stats.total}</p>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-0 blur-xl bg-blue-500/50" />
-              <div className="relative bg-blue-500/20 rounded-2xl p-4">
-                <AlertCircle className="w-8 h-8 text-blue-400" />
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <TrendingUp className="w-4 h-4" />
-            <span>All assigned tasks</span>
-          </div>
         </div>
 
-        <div className="glass-card rounded-2xl p-6 glow hover:scale-105 transition-transform duration-300">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm text-gray-300 mb-1 font-medium">To Do</p>
-              <p className="text-4xl font-bold gradient-text">{stats.todo}</p>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-0 blur-xl bg-yellow-500/50" />
-              <div className="relative bg-yellow-500/20 rounded-2xl p-4">
-                <Clock className="w-8 h-8 text-yellow-400" />
-              </div>
-            </div>
+        {/* Compact Stats */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-center">
+            <AlertCircle className="w-3.5 h-3.5 text-blue-400 mx-auto mb-1" />
+            <p className="text-xl font-bold text-white">{stats.total}</p>
+            <p className="text-xs text-gray-500">Total</p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <Zap className="w-4 h-4" />
-            <span>Pending tasks</span>
+          <div className="bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-center">
+            <Clock className="w-3.5 h-3.5 text-yellow-400 mx-auto mb-1" />
+            <p className="text-xl font-bold text-yellow-400">{stats.todo}</p>
+            <p className="text-xs text-gray-500">To Do</p>
           </div>
-        </div>
-
-        <div className="glass-card rounded-2xl p-6 glow hover:scale-105 transition-transform duration-300">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm text-gray-300 mb-1 font-medium">In Progress</p>
-              <p className="text-4xl font-bold gradient-text">{stats.inProgress}</p>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-0 blur-xl bg-green-500/50" />
-              <div className="relative bg-green-500/20 rounded-2xl p-4">
-                <CheckCircle2 className="w-8 h-8 text-green-400" />
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <TrendingUp className="w-4 h-4" />
-            <span>Active work</span>
+          <div className="bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-center">
+            <CheckCircle2 className="w-3.5 h-3.5 text-green-400 mx-auto mb-1" />
+            <p className="text-xl font-bold text-green-400">{stats.inProgress}</p>
+            <p className="text-xs text-gray-500">In Progress</p>
           </div>
         </div>
       </div>
 
       {/* Issues Section */}
-      <div className="glass-card rounded-3xl p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold gradient-text">Your Open Issues</h2>
-          <Button
-            onClick={fetchIssues}
-            disabled={loading}
-            className="glass-button rounded-xl"
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
-
+      <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
         {/* Issues List */}
         {loading && issues.length === 0 ? (
           <div className="text-center py-12">

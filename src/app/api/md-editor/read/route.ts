@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     // Resolve the file path
     const resolvedPath = path.resolve(cleanPath);
 
-    // Check if file exists
+    // Check if file/folder exists
     try {
       await fs.access(resolvedPath);
     } catch {
@@ -33,23 +33,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if it's a directory
+    try {
+      const stats = await fs.stat(resolvedPath);
+      if (stats.isDirectory()) {
+        // If it's a directory, return special response indicating folder
+        return NextResponse.json({
+          success: true,
+          isDirectory: true,
+          folderPath: resolvedPath,
+          message: 'This is a folder. Use list-files API to browse contents.'
+        });
+      }
+    } catch {
+      // Continue with file handling
+    }
+
     // Get file extension
     const ext = path.extname(resolvedPath).toLowerCase();
 
-    // Supported text-based file extensions
-    const textExtensions = ['.md', '.markdown', '.html', '.htm', '.txt'];
+    // Supported text-based file extensions (markdown, HTML, code files, etc.)
+    const textExtensions = [
+      '.md', '.markdown', '.html', '.htm', '.txt',
+      '.css', '.scss', '.less',
+      '.js', '.jsx', '.ts', '.tsx',
+      '.json', '.xml', '.svg', '.yaml', '.yml', '.env',
+      '.sql', '.java', '.py', '.rb', '.go', '.rs', '.cpp', '.c', '.h',
+      '.php', '.rb', '.sh', '.bash', '.gradle', '.properties'
+    ];
 
     // Check if it's a text-based file that can be read as text
     if (textExtensions.includes(ext)) {
       // Read text-based files
       const content = await fs.readFile(resolvedPath, 'utf-8');
       const fileName = path.basename(resolvedPath);
+      const dirPath = path.dirname(resolvedPath);
 
       return NextResponse.json({
         success: true,
         content,
         fileName,
         filePath: resolvedPath,
+        dirPath, // Directory path for resolving relative resources
         fileType: 'text',
       });
     }
@@ -75,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     // Unsupported file type
     return NextResponse.json(
-      { error: `Unsupported file type: ${ext}. Supported types: .md, .markdown, .html, .htm, .pdf, .docx, .xlsx` },
+      { error: `Unsupported file type: ${ext}. Supported types: .md, .html, .css, .js, .ts, .json, .xml, .yaml, .sql, .pdf, .docx, .xlsx` },
       { status: 400 }
     );
 

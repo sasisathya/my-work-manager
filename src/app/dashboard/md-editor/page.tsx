@@ -27,7 +27,119 @@ import {
   X,
   Clock,
   ChevronLeft,
+  Folder,
+  File as FileIcon,
+  Menu,
 } from 'lucide-react';
+
+interface FileItem {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  size?: number;
+  modified?: string;
+}
+
+// Helper to resolve relative paths
+const resolveRelativePath = (basePath: string | null | undefined, relativePath: string): string => {
+  if (!basePath) return relativePath; // If no base path, return relative path as-is
+  const parts = basePath.split('/');
+  const pathParts = relativePath.split('/');
+
+  for (let i = 0; i < pathParts.length; i++) {
+    if (pathParts[i] === '..') {
+      parts.pop();
+    } else if (pathParts[i] !== '.') {
+      parts.push(pathParts[i]);
+    }
+  }
+
+  return parts.join('/');
+};
+
+// Detect file type by extension and content
+const detectFileType = (fileName: string | undefined, content: string): 'markdown' | 'html' | 'code' => {
+  if (!fileName) return 'markdown'; // Default to markdown if no filename
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+
+  // Code files
+  const codeExtensions = [
+    'css', 'scss', 'less',
+    'js', 'jsx', 'ts', 'tsx',
+    'json', 'xml', 'svg', 'yaml', 'yml',
+    'sql', 'java', 'py', 'rb', 'go', 'rs', 'cpp', 'c', 'h',
+    'php', 'sh', 'bash', 'gradle', 'properties', 'env'
+  ];
+
+  if (codeExtensions.includes(ext)) {
+    return 'code';
+  }
+
+  // HTML detection
+  const isHtml = content.trim().startsWith('<') || content.includes('<div') || content.includes('<p>');
+  if (isHtml) {
+    return 'html';
+  }
+
+  // Default to markdown
+  return 'markdown';
+};
+
+// Beautify/Format code for display
+const beautifyCode = (code: string, fileExt: string | undefined): string => {
+  if (!fileExt) return code; // Return as-is if no extension
+
+  // For JSON, prettify with indentation
+  if (fileExt === '.json' || fileExt.endsWith('.json')) {
+    try {
+      const parsed = JSON.parse(code);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return code;
+    }
+  }
+
+  // For other code files, just ensure proper formatting
+  return code;
+};
+
+// Transform HTML content to serve resources via API
+const transformHtmlContent = (html: string, fileDir?: string | null): string => {
+  if (!html || !fileDir) return html;
+
+  let transformed = html;
+
+  // Replace relative paths for stylesheets
+  transformed = transformed.replace(
+    /href=["'](?!(?:https?:|\/\/|data:))([^"']+)["']/g,
+    (match, filePath) => {
+      // Keep absolute app paths as-is
+      if (filePath.startsWith('/')) {
+        return match;
+      }
+      // For relative paths, resolve and serve via API
+      const absolutePath = resolveRelativePath(fileDir, filePath);
+      return `href="/api/md-editor/serve-file?path=${encodeURIComponent(absolutePath)}"`;
+    }
+  );
+
+  // Replace relative paths for images and other src attributes
+  transformed = transformed.replace(
+    /src=["'](?!(?:https?:|\/\/|data:))([^"']+)["']/g,
+    (match, filePath) => {
+      if (filePath.startsWith('/')) {
+        return match;
+      }
+      const absolutePath = resolveRelativePath(fileDir, filePath);
+      return `src="/api/md-editor/serve-file?path=${encodeURIComponent(absolutePath)}"`;
+    }
+  );
+
+  // Remove problematic Next.js attributes
+  transformed = transformed.replace(/\s+data-precedence="[^"]*"/g, '');
+
+  return transformed;
+};
 
 // Confluence-compatible markdown renderer with link URL support
 const renderMarkdown = (markdown: string, baseUrl?: string | null): string => {
@@ -46,13 +158,18 @@ const renderMarkdown = (markdown: string, baseUrl?: string | null): string => {
   // Inline code
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-  // Headers - Confluence needs proper h1-h6 tags
-  html = html.replace(/^###### (.+)$/gm, '<h6>$1</h6>');
-  html = html.replace(/^##### (.+)$/gm, '<h5>$1</h5>');
-  html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  // Headers - Confluence needs proper h1-h6 tags with IDs for anchor links
+  const createHeaderWithId = (level: number, text: string) => {
+    const id = text.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+    return `<h${level} id="${id}">${text}</h${level}>`;
+  };
+
+  html = html.replace(/^###### (.+)$/gm, (_, text) => createHeaderWithId(6, text));
+  html = html.replace(/^##### (.+)$/gm, (_, text) => createHeaderWithId(5, text));
+  html = html.replace(/^#### (.+)$/gm, (_, text) => createHeaderWithId(4, text));
+  html = html.replace(/^### (.+)$/gm, (_, text) => createHeaderWithId(3, text));
+  html = html.replace(/^## (.+)$/gm, (_, text) => createHeaderWithId(2, text));
+  html = html.replace(/^# (.+)$/gm, (_, text) => createHeaderWithId(1, text));
 
   // Horizontal rules
   html = html.replace(/^---$/gm, '<hr/>');
@@ -218,10 +335,19 @@ export default function MDEditorPage() {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMinimized, setChatMinimized] = useState(false);
-  const [contentType, setContentType] = useState<'markdown' | 'html'>('markdown');
+  const [contentType, setContentType] = useState<'markdown' | 'html' | 'code'>('markdown');
   const [copiedFeedback, setCopiedFeedback] = useState<string | null>(null);
   const [sourceUrl, setSourceUrl] = useState<string | null>(null); // Track if loaded from Confluence
+  const [fileDir, setFileDir] = useState<string | null>(null); // Directory path for resolving relative resources
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // File browser state
+  const [folderPath, setFolderPath] = useState('');
+  const [fileList, setFileList] = useState<FileItem[]>([]);
+  const [fileBrowserLoading, setFileBrowserLoading] = useState(false);
+  const [fileBrowserError, setFileBrowserError] = useState('');
+  const [showFileBrowser, setShowFileBrowser] = useState(false);
+  const [currentFolder, setCurrentFolder] = useState('');
 
   // Memoize markdown rendering to prevent recalculation on every render
   const renderedMarkdown = useMemo(() => renderMarkdown(fileContent, sourceUrl), [fileContent, sourceUrl]);
@@ -238,6 +364,48 @@ export default function MDEditorPage() {
       return () => clearTimeout(timer);
     }
   }, [copiedFeedback]);
+
+  // Auto-dismiss success messages after 3 seconds
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  // Auto-dismiss error messages after 3 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  // Handle hash navigation and scroll to sections
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash) {
+        // Remove the # from the hash
+        const elementId = hash.substring(1);
+
+        // Wait a bit for DOM to update
+        setTimeout(() => {
+          const element = document.getElementById(elementId);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
+    };
+
+    // Handle initial hash on page load
+    handleHashChange();
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [fileContent, previewMode]);
 
   const handleCopy = async (text: string, feedbackMsg: string, isHtml: boolean = false) => {
     try {
@@ -327,12 +495,20 @@ export default function MDEditorPage() {
         setFileContent(data.content);
         setOriginalContent(data.content);
         setSourceUrl(null); // Clear source URL for local files
+        setFileDir(data.dirPath); // Store directory path for CSS/resource resolution
 
-        // Auto-detect content type
-        const isHtml = data.content.trim().startsWith('<') || data.content.includes('<div') || data.content.includes('<p>');
-        setContentType(isHtml ? 'html' : 'markdown');
+        // Auto-detect content type and beautify if needed
+        const detectedType = detectFileType(data.fileName, data.content);
+        setContentType(detectedType);
 
-        setSuccess(`File loaded: ${data.fileName} (${isHtml ? 'HTML' : 'Markdown'})`);
+        if (detectedType === 'code') {
+          const beautified = beautifyCode(data.content, data.fileName);
+          setFileContent(beautified);
+          setOriginalContent(beautified);
+        }
+
+        const typeLabel = detectedType === 'code' ? 'Code' : detectedType === 'html' ? 'HTML' : 'Markdown';
+        setSuccess(`File loaded: ${data.fileName} (${typeLabel})`);
 
         // Add to recent files
         if (!recentFiles.includes(filePath)) {
@@ -511,6 +687,259 @@ export default function MDEditorPage() {
     setSuccess('File exported successfully!');
   };
 
+  const handleOpenPath = async () => {
+    const path = filePath || folderPath;
+    if (!path) {
+      setFileBrowserError('Please enter a path');
+      return;
+    }
+
+    // Check if it's a web URL
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      await handleLoadWebUrl(path);
+      return;
+    }
+
+    // Try to determine if it's a folder or file (local path)
+    // First, try as a folder
+    await handleLoadFolderPath(path);
+  };
+
+  const handleLoadFolderPath = async (path: string) => {
+    setFileBrowserLoading(true);
+    setFileBrowserError('');
+    setError('');
+    setFileList([]);
+
+    try {
+      const response = await fetch('/api/md-editor/list-files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderPath: path }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.files) {
+        setFileList(data.files);
+        setCurrentFolder(data.folderPath);
+        setFolderPath(path);
+        setFilePath('');
+        setShowFileBrowser(true);
+        setSuccess(`Loaded ${data.files.length} items from folder`);
+      } else {
+        // If folder fails, try as a file
+        await handleReadFilePath(path);
+      }
+    } catch (err: any) {
+      // If folder fails, try as a file
+      await handleReadFilePath(path);
+    } finally {
+      setFileBrowserLoading(false);
+    }
+  };
+
+  const handleReadFilePath = async (path: string) => {
+    setLoading(true);
+    setFileBrowserError('');
+    setError('');
+
+    try {
+      const response = await fetch('/api/md-editor/read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath: path }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to read file or access folder');
+      }
+
+      // Check if the response indicates it's a directory
+      if (data.isDirectory) {
+        // If it's a directory, load it as a folder instead
+        setLoading(false);
+        await handleLoadFolderPath(path);
+        return;
+      }
+
+      setFileContent(data.content);
+      setOriginalContent(data.content);
+      setSourceUrl(null);
+      setFilePath(path);
+      setFileDir(data.dirPath); // Store directory path for CSS/resource resolution
+      // Keep folder path and file list so browser can navigate from any loaded file
+      // setFolderPath(''); // REMOVED to allow folder navigation
+      // setFileList([]); // REMOVED to allow folder navigation
+      // setShowFileBrowser(false); // Allow file browser to remain accessible
+
+      // Get file name safely - handle cases where data.fileName might be undefined
+      let cleanPath = path;
+      if (path && path.startsWith('file://')) {
+        cleanPath = path.replace('file://', '');
+      }
+      const fileName = data.fileName || (cleanPath ? cleanPath.split('/').pop() : 'Unknown');
+
+      // Auto-detect content type and beautify if needed
+      const detectedType = detectFileType(fileName || 'unknown', data.content);
+      setContentType(detectedType);
+
+      if (detectedType === 'code') {
+        const beautified = beautifyCode(data.content, fileName || '');
+        setFileContent(beautified);
+        setOriginalContent(beautified);
+      }
+
+      const typeLabel = detectedType === 'code' ? 'Code' : detectedType === 'html' ? 'HTML' : 'Markdown';
+      const displayName = fileName || (cleanPath && cleanPath.split('/').pop()) || 'File';
+      setSuccess(`File loaded: ${displayName} (${typeLabel})`);
+      setChatHistory([]);
+    } catch (err: any) {
+      setError(err.message || 'Path not found. Please check and try again.');
+      setFileBrowserError('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoadWebUrl = async (url: string) => {
+    setLoading(true);
+    setError('');
+    setFileBrowserError('');
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: Failed to fetch URL`);
+      }
+
+      const content = await response.text();
+
+      setFileContent(content);
+      setOriginalContent(content);
+      setSourceUrl(url);
+      setFilePath(url);
+      setFileDir(null); // No directory for web URLs
+
+      // Auto-detect content type
+      const fileName = url.split('/').pop() || 'document';
+      const detectedType = detectFileType(fileName, content);
+      setContentType(detectedType);
+
+      if (detectedType === 'code') {
+        const beautified = beautifyCode(content, fileName || '');
+        setFileContent(beautified);
+        setOriginalContent(beautified);
+      }
+
+      const typeLabel = detectedType === 'code' ? 'Code' : detectedType === 'html' ? 'HTML' : 'Markdown';
+      setSuccess(`Loaded from web: ${fileName} (${typeLabel})`);
+      setChatHistory([]);
+
+      // Don't show file browser for web URLs
+      setShowFileBrowser(false);
+      setFileList([]);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load from web URL. Please check the URL and try again.');
+      setFileBrowserError('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoadFolder = async () => {
+    if (!folderPath) {
+      setFileBrowserError('Please enter a folder path');
+      return;
+    }
+
+    await handleLoadFolderPath(folderPath);
+  };
+
+  const handleSelectFile = async (file: FileItem) => {
+    if (file.isDirectory) {
+      setFolderPath(file.path);
+      // Trigger loading by updating folder path
+      const response = await fetch('/api/md-editor/list-files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderPath: file.path }),
+      });
+
+      const data = await response.json();
+      if (data.files) {
+        setFileList(data.files);
+        setCurrentFolder(data.folderPath);
+      }
+      return;
+    }
+
+    // Load file content
+    setFilePath(file.path);
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/md-editor/read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath: file.path }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to read file');
+      }
+
+      setFileContent(data.content);
+      setOriginalContent(data.content);
+      setSourceUrl(null);
+      setFileDir(data.dirPath); // Store directory path for CSS/resource resolution
+      // Keep file list so folder browser remains accessible - do NOT clear it
+      // setFileList([]); // REMOVED: This was preventing folder navigation
+
+      // Auto-detect content type and beautify if needed
+      const detectedType = detectFileType(file.name, data.content);
+      setContentType(detectedType);
+
+      if (detectedType === 'code') {
+        const beautified = beautifyCode(data.content, file.name);
+        setFileContent(beautified);
+        setOriginalContent(beautified);
+      }
+
+      const typeLabel = detectedType === 'code' ? 'Code' : detectedType === 'html' ? 'HTML' : 'Markdown';
+      setSuccess(`File loaded: ${file.name} (${typeLabel})`);
+      setChatHistory([]);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoBack = async () => {
+    if (!currentFolder) return; // Safety check
+    const parentPath = currentFolder.split('/').slice(0, -1).join('/');
+    if (parentPath) {
+      const response = await fetch('/api/md-editor/list-files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderPath: parentPath }),
+      });
+
+      const data = await response.json();
+      if (data.files) {
+        setFileList(data.files);
+        setCurrentFolder(data.folderPath);
+        setFolderPath(parentPath);
+      }
+    }
+  };
+
   const handleClearChat = () => {
     setChatHistory([]);
     setSuccess('Chat history cleared');
@@ -534,67 +963,144 @@ export default function MDEditorPage() {
   return (
     <div className="space-y-8">
 
-      {/* Success/Error Messages */}
+      {/* Success/Error Messages - Toast Style */}
       {success && (
-        <div className="bg-gray-900 border border-gray-600 rounded-2xl p-5">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-6 h-6 text-green-400" />
-            <p className="text-gray-200 font-medium">{success}</p>
+        <div className="fixed top-4 right-4 z-40 bg-green-900/90 border border-green-700 rounded-lg p-4 backdrop-blur-sm max-w-sm animate-in fade-in slide-in-from-top">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+            <p className="text-green-100 font-medium text-sm">{success}</p>
           </div>
         </div>
       )}
 
       {error && (
-        <div className="bg-gray-900 border border-gray-600 rounded-2xl p-5">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="w-6 h-6 text-red-400" />
-            <p className="text-red-200 font-medium">{error}</p>
+        <div className="fixed top-4 right-4 z-40 bg-red-900/90 border border-red-700 rounded-lg p-4 backdrop-blur-sm max-w-sm animate-in fade-in slide-in-from-top">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-red-100 font-medium text-sm">{error}</p>
           </div>
         </div>
       )}
 
-      {/* Compact File Input Section */}
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
-        <div className="flex items-center gap-3">
-          <Input
-            id="filePath"
-            type="text"
-            placeholder="Enter file path: file:///path/to/file.pdf (or .md, .docx, .xlsx, .html) or Confluence URL"
-            value={filePath}
-            onChange={(e) => setFilePath(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && filePath) {
-                handleReadFile();
-              }
-            }}
-            className="bg-gray-800 border border-gray-600 text-white placeholder:text-gray-500 h-12 text-sm rounded-lg flex-1"
-          />
-
+      {/* Unified File/Folder Input Section */}
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5">
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <Input
+              type="text"
+              placeholder="Enter file path, folder, or Confluence URL"
+              value={filePath || folderPath}
+              onChange={(e) => {
+                const val = e.target.value.trim();
+                setFilePath(val);
+                setFolderPath(val);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleOpenPath();
+                }
+              }}
+              className="bg-gray-800 border border-gray-600 text-white placeholder:text-gray-500 h-10 text-sm rounded-lg w-full"
+            />
+          </div>
           <Button
-            onClick={handleReadFile}
-            disabled={loading || !filePath}
-            className="bg-gray-700 hover:bg-gray-600 text-white font-bold px-6 h-12 rounded-lg"
+            onClick={handleOpenPath}
+            disabled={(loading || fileBrowserLoading) || (!filePath && !folderPath)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 h-10 rounded-lg whitespace-nowrap"
           >
-            {loading ? (
+            {loading || fileBrowserLoading ? (
               <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Load
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                Loading
               </>
             ) : (
               <>
-                <FileText className="w-5 h-5 mr-2" />
-                Load
+                <FileText className="w-4 h-4 mr-1" />
+                Open
               </>
             )}
           </Button>
+          {fileList.length > 0 && (
+            <Button
+              onClick={() => setShowFileBrowser(!showFileBrowser)}
+              className={`${
+                showFileBrowser
+                  ? 'bg-purple-700 hover:bg-purple-800'
+                  : 'bg-gray-700 hover:bg-gray-600'
+              } text-white font-bold px-4 h-10 rounded-lg whitespace-nowrap`}
+              title={showFileBrowser ? 'Hide file browser' : 'Show file browser'}
+            >
+              <Menu className="w-4 h-4" />
+            </Button>
+          )}
         </div>
+
+        {(fileBrowserError || error) && (
+          <div className="mt-2 bg-red-900/30 border border-red-700/50 rounded p-2 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <span className="text-xs text-red-300">{fileBrowserError || error}</span>
+          </div>
+        )}
       </div>
 
-      {/* Editor Section with Floating Chat */}
-      {fileContent && (
-        <div>
-          {/* LinkedIn-Style Floating Chat Popup */}
-          {chatOpen && (
+      {/* File Browser with Editor */}
+      {(fileList.length > 0 || fileContent) && (
+        <div className={`${showFileBrowser && fileList.length > 0 ? 'grid grid-cols-1 lg:grid-cols-5 gap-4' : ''}`}>
+          {/* File List Sidebar - Only show if browsing folders */}
+          {showFileBrowser && fileList.length > 0 && (
+            <div className="lg:col-span-1 order-2 lg:order-1">
+              <div className="bg-gray-900 border border-gray-700 rounded-xl p-3 sticky top-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+                <div className="mb-3 pb-2 border-b border-gray-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-bold text-white">Files</h4>
+                    {currentFolder && currentFolder !== '/' && (
+                      <button
+                        onClick={handleGoBack}
+                        className="p-1 hover:bg-gray-800 rounded text-gray-400 hover:text-white transition-colors"
+                        title="Go to parent folder"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 truncate">{currentFolder ? (currentFolder.split('/').pop() || 'root') : 'root'}</p>
+                </div>
+
+                <div className="space-y-0.5">
+                  {fileList.map((file) => (
+                    <button
+                      key={file.path}
+                      onClick={() => handleSelectFile(file)}
+                      className="w-full text-left px-2 py-1.5 rounded hover:bg-gray-800 transition-colors flex items-center gap-2 text-xs group"
+                      title={file.name}
+                    >
+                      {file.isDirectory ? (
+                        <>
+                          <Folder className="w-3 h-3 text-purple-400 flex-shrink-0" />
+                          <span className="text-gray-300 group-hover:text-white truncate flex-1">
+                            {file.name}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <FileIcon className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                          <span className="text-gray-300 group-hover:text-white truncate flex-1">
+                            {file.name}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Editor Content - Full width or 4 columns wide depending on sidebar */}
+          {fileContent && (
+            <div className={`${showFileBrowser && fileList.length > 0 ? 'lg:col-span-4 order-1 lg:order-2' : 'w-full'}`}>
+              {/* LinkedIn-Style Floating Chat Popup */}
+              {chatOpen && (
             <div
               className={`fixed right-6 transition-all duration-300 z-50 ${
                 chatMinimized ? 'bottom-6' : 'bottom-6'
@@ -869,17 +1375,66 @@ export default function MDEditorPage() {
                     >
                       HTML/Confluence
                     </button>
+                    <button
+                      onClick={() => setContentType('code')}
+                      className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                        contentType === 'code'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      Code
+                    </button>
                   </div>
                 </div>
 
-                {contentType === 'html' ? (
+                {contentType === 'code' ? (
+                  <div className="bg-gray-900 rounded-lg p-6 w-full overflow-x-auto max-h-[700px] overflow-y-auto">
+                    <pre className="text-sm text-gray-300 font-mono">
+                      <code>{fileContent}</code>
+                    </pre>
+                  </div>
+                ) : contentType === 'html' ? (
                   <div className="bg-white w-full">
                     <iframe
-                      srcDoc={fileContent}
+                      srcDoc={`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: white;
+      padding: 20px;
+    }
+    img { max-width: 100%; height: auto; }
+    a { color: #0066cc; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; }
+    pre { background: #f5f5f5; padding: 12px; border-radius: 4px; overflow-x: auto; }
+    pre code { background: none; padding: 0; }
+    table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+    th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+    th { background: #f5f5f5; font-weight: bold; }
+  </style>
+</head>
+<body>
+  ${transformHtmlContent(fileContent, fileDir)}
+</body>
+</html>`}
                       className="w-full border-0"
                       style={{ height: '700px', backgroundColor: 'white' }}
                       title="HTML Viewer"
-                      sandbox="allow-same-origin"
+                      sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-presentation"
                     />
                   </div>
                 ) : (
@@ -1013,6 +1568,20 @@ export default function MDEditorPage() {
                       }
                     `}</style>
                     <div
+                      onClick={(e: React.MouseEvent) => {
+                        const target = e.target as HTMLElement;
+                        if (target.tagName === 'A') {
+                          const href = (target as HTMLAnchorElement).getAttribute('href');
+                          if (href && href.startsWith('#')) {
+                            e.preventDefault();
+                            const elementId = href.substring(1);
+                            const element = document.getElementById(elementId);
+                            if (element) {
+                              element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }
+                        }
+                      }}
                       dangerouslySetInnerHTML={{
                         __html: renderedMarkdown,
                       }}
@@ -1045,6 +1614,16 @@ export default function MDEditorPage() {
                     >
                       HTML/Confluence
                     </button>
+                    <button
+                      onClick={() => setContentType('code')}
+                      className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                        contentType === 'code'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      Code
+                    </button>
                   </div>
                 </div>
                 <Textarea
@@ -1052,7 +1631,7 @@ export default function MDEditorPage() {
                   onChange={(e) => setFileContent(e.target.value)}
                   onPaste={handlePasteContent}
                   className="bg-gray-800 border border-gray-600 text-white placeholder:text-gray-500 font-mono text-sm rounded-lg min-h-[700px]"
-                  placeholder="Paste Confluence content here or type Markdown/HTML... (Ctrl+V to paste)"
+                  placeholder="Paste Confluence content here or type Markdown/HTML/Code... (Ctrl+V to paste)"
                 />
                 <p className="text-xs text-gray-400 ml-2">
                   💡 Tip: Copy content from Confluence and paste here (Ctrl+V) - HTML format will be automatically detected
@@ -1140,6 +1719,8 @@ export default function MDEditorPage() {
               </Button>
             </div>
           </div>
+            </div>
+          )}
         </div>
       )}
     </div>

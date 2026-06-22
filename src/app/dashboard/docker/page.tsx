@@ -239,18 +239,11 @@ export default function DockerKafkaPage() {
       const data = await response.json();
 
       if (data.containers) {
-        // Filter for Kafka-related containers
-        const kafkaContainers = data.containers.filter((container: DockerContainer) =>
-          container.image.toLowerCase().includes('kafka') ||
-          container.image.toLowerCase().includes('zookeeper') ||
-          container.image.toLowerCase().includes('confluent') ||
-          container.name.toLowerCase().includes('kafka') ||
-          container.name.toLowerCase().includes('zookeeper')
-        );
-        setContainers(kafkaContainers);
+        // Show all containers
+        setContainers(data.containers);
 
-        if (kafkaContainers.length > 0) {
-          addLog(`Found ${kafkaContainers.length} Kafka-related container(s)`);
+        if (data.containers.length > 0) {
+          addLog(`Found ${data.containers.length} container(s)`);
         }
       }
     } catch (error: any) {
@@ -405,64 +398,53 @@ export default function DockerKafkaPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-2xl p-8 shadow-xl">
-        <div className="flex items-center gap-4">
-          <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
-            <Container className="w-8 h-8 text-gray-300" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Docker & Kafka</h1>
-            <p className="text-gray-400 text-lg">Manage Docker images and Kafka containers</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
+      {/* Header with Quick Actions */}
       <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-xl font-bold text-white mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Button
-            onClick={pullKafkaImage}
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl border border-blue-500 transition-colors"
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-            ) : (
-              <Download className="w-5 h-5 mr-2" />
-            )}
-            Pull Kafka Image
-          </Button>
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+            <Container className="w-8 h-8 text-gray-400" />
+            Docker
+          </h1>
+          <div className="flex gap-2">
+            <Button
+              onClick={pullKafkaImage}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg border border-blue-500 transition-colors text-sm"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-1" />
+              )}
+              Pull Kafka
+            </Button>
 
-          <Button
-            onClick={pullZookeeperImage}
-            disabled={loading}
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-xl border border-green-500 transition-colors"
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-            ) : (
-              <Download className="w-5 h-5 mr-2" />
-            )}
-            Pull Zookeeper Image
-          </Button>
+            <Button
+              onClick={pullZookeeperImage}
+              disabled={loading}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg border border-green-500 transition-colors text-sm"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-1" />
+              )}
+              Pull Zookeeper
+            </Button>
 
-          <Button
-            onClick={refreshAll}
-            disabled={loading}
-            className="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-4 rounded-xl border border-gray-600 transition-colors"
-          >
-            <RefreshCw className={`w-5 h-5 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh All
-          </Button>
+            <Button
+              onClick={refreshAll}
+              disabled={loading}
+              className="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 rounded-lg border border-gray-600 transition-colors text-sm"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Predefined Services */}
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
-        <h2 className="text-2xl font-bold text-white mb-6">Quick Start Services</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {services.map((service, idx) => {
             const isRunning = serviceStatus[service.name] || false;
 
@@ -593,129 +575,137 @@ export default function DockerKafkaPage() {
               </div>
             );
           })}
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Docker Images */}
-        <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Package className="w-6 h-6 text-gray-400" />
-              Kafka Images
-            </h2>
-            <span className="text-sm text-gray-500">{images.length} image(s)</span>
+        {/* Running Containers */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-400" />
+                Running Containers
+              </h2>
+              <span className="text-xs text-green-400 font-semibold bg-green-500/20 px-2 py-1 rounded-full">
+                {containers.filter(c => c.state === 'running').length}
+              </span>
+            </div>
+            <Button
+              onClick={fetchDockerContainers}
+              disabled={loading}
+              className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded text-xs"
+            >
+              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
 
-          {images.length === 0 ? (
-            <div className="text-center py-12">
-              <AlertCircle className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-400">No Kafka images found</p>
-              <p className="text-sm text-gray-500 mt-2">Pull Kafka or Zookeeper images to get started</p>
+          {containers.filter(c => c.state === 'running').length === 0 ? (
+            <div className="text-center py-4 text-gray-500 bg-gray-800/50 rounded-lg">
+              <p className="text-sm">No running containers</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {images.map((image, idx) => (
-                <div
-                  key={idx}
-                  className="bg-gray-800 border border-gray-700 rounded-xl p-4"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-white font-mono text-sm font-semibold">
-                        {image.repository}:{image.tag}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        ID: {image.imageId.substring(0, 12)}
-                      </p>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                        <span>Size: {image.size}</span>
-                        <span>Created: {image.created}</span>
+            <div className="grid grid-cols-3 gap-3">
+              {containers
+                .filter(c => c.state === 'running')
+                .map((container, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-gray-800 border border-green-600 rounded-lg p-2.5 hover:shadow-lg hover:shadow-green-500/20 transition-all"
+                  >
+                    <div className="flex items-start gap-1.5 mb-1.5">
+                      <CheckCircle2 className="w-3 h-3 text-green-400 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-semibold text-xs truncate">{container.name}</p>
+                        <p className="text-xs text-gray-600 truncate">{container.image.split('/').pop()}</p>
                       </div>
                     </div>
+
+                    {container.ports && (
+                      <button
+                        onClick={() => {
+                          // Docker ports format: "0.0.0.0:8090->8090/tcp" or "8090/tcp"
+                          let port = null;
+
+                          // Try to match "0.0.0.0:PORT->" format (mapped port)
+                          const mappedMatch = container.ports.match(/0\.0\.0\.0:(\d+)->/);
+                          if (mappedMatch) {
+                            port = mappedMatch[1];
+                          } else {
+                            // Try to match just the first port number
+                            const firstPortMatch = container.ports.match(/(\d+)/);
+                            if (firstPortMatch) {
+                              port = firstPortMatch[1];
+                            }
+                          }
+
+                          if (port) {
+                            window.open(`http://localhost:${port}`, '_blank');
+                          }
+                        }}
+                        className="w-full text-xs text-green-400 bg-green-500/10 border border-green-500/30 rounded px-1.5 py-0.5 mb-1.5 hover:bg-green-500/20 hover:border-green-400 transition-colors text-left"
+                      >
+                        → {container.ports
+                          .replace(/0\.0\.0\.0:/g, '')
+                          .replace(/\/tcp|\/udp/g, '')
+                        }
+                      </button>
+                    )}
+
                     <Button
-                      onClick={() => removeImage(image.imageId)}
-                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm"
+                      onClick={() => stopContainer(container.id)}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white px-1.5 py-0.5 rounded text-xs h-6"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Square className="w-2 h-2 mr-0.5" />
+                      Stop
                     </Button>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
         </div>
 
-        {/* Docker Containers */}
-        <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Database className="w-6 h-6 text-gray-400" />
-              Kafka Containers
+        {/* Stopped Containers */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <XCircle className="w-5 h-5 text-gray-500" />
+              Stopped Containers
             </h2>
-            <span className="text-sm text-gray-500">{containers.length} container(s)</span>
+            <span className="text-xs text-gray-400 font-semibold bg-gray-700 px-2 py-1 rounded-full">
+              {containers.filter(c => c.state !== 'running').length}
+            </span>
           </div>
 
-          {containers.length === 0 ? (
-            <div className="text-center py-12">
-              <AlertCircle className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-400">No Kafka containers found</p>
-              <p className="text-sm text-gray-500 mt-2">Create containers from images to get started</p>
+          {containers.filter(c => c.state !== 'running').length === 0 ? (
+            <div className="text-center py-4 text-gray-500 bg-gray-800/50 rounded-lg">
+              <p className="text-sm">No stopped containers</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {containers.map((container, idx) => {
-                const isRunning = container.state === 'running';
-
-                return (
+            <div className="grid grid-cols-3 gap-3">
+              {containers
+                .filter(c => c.state !== 'running')
+                .map((container, idx) => (
                   <div
                     key={idx}
-                    className={`bg-gray-800 border rounded-xl p-4 ${
-                      isRunning ? 'border-green-600' : 'border-gray-700'
-                    }`}
+                    className="bg-gray-800 border border-gray-700 rounded-lg p-2.5 hover:shadow-lg hover:shadow-gray-500/10 transition-all"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          {isRunning ? (
-                            <CheckCircle2 className="w-4 h-4 text-green-400" />
-                          ) : (
-                            <XCircle className="w-4 h-4 text-gray-500" />
-                          )}
-                          <p className="text-white font-semibold text-sm">{container.name}</p>
-                        </div>
-                        <p className="text-xs text-gray-400 font-mono">{container.image}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Status: {container.status}
-                        </p>
-                        {container.ports && (
-                          <p className="text-xs text-gray-500">Ports: {container.ports}</p>
-                        )}
+                    <div className="flex items-start gap-1.5 mb-1.5">
+                      <XCircle className="w-3 h-3 text-gray-500 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-semibold text-xs truncate">{container.name}</p>
+                        <p className="text-xs text-gray-600 truncate">{container.image.split('/').pop()}</p>
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      {isRunning ? (
-                        <Button
-                          onClick={() => stopContainer(container.id)}
-                          className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs"
-                        >
-                          <Square className="w-3 h-3 mr-1" />
-                          Stop
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => startContainer(container.id)}
-                          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs"
-                        >
-                          <Play className="w-3 h-3 mr-1" />
-                          Start
-                        </Button>
-                      )}
-                    </div>
+                    <Button
+                      onClick={() => startContainer(container.id)}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white px-1.5 py-0.5 rounded text-xs h-6"
+                    >
+                      <Play className="w-2 h-2 mr-0.5" />
+                      Start
+                    </Button>
                   </div>
-                );
-              })}
+                ))}
             </div>
           )}
         </div>
