@@ -113,17 +113,17 @@ export default function Sidebar() {
                   </>
                 )}
               </Link>
-              {/* Tooltip on hover when collapsed */}
-              {!expanded && (
-                <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap border border-gray-600 z-50">
-                  {item.name}
-                  {item.badge && (
-                    <span className="ml-2 px-2 py-0.5 text-xs font-bold bg-gray-500 rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
-                </div>
-              )}
+              {/* Tooltip on hover when collapsed - always rendered but hidden when expanded */}
+              <div className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg whitespace-nowrap border border-gray-600 z-50 transition-opacity ${
+                expanded ? 'hidden' : 'opacity-0 group-hover:opacity-100 pointer-events-none'
+              }`}>
+                {item.name}
+                {item.badge && (
+                  <span className="ml-2 px-2 py-0.5 text-xs font-bold bg-gray-500 rounded-full">
+                    {item.badge}
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}
@@ -132,7 +132,7 @@ export default function Sidebar() {
       {/* My Profile Section */}
       <div className="p-4 border-t border-gray-600/20 space-y-3">
         {/* Profile Header - Works as both link and toggle */}
-        <div className="relative group">
+        <div className="relative group w-full">
           <Link
             href="/dashboard/my-profile"
             onClick={(e) => {
@@ -164,12 +164,12 @@ export default function Sidebar() {
               </>
             )}
           </Link>
-          {/* Tooltip for collapsed state */}
-          {!expanded && (
-            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap border border-gray-600 z-50">
-              My Profile
-            </div>
-          )}
+          {/* Tooltip for collapsed state - hidden when expanded */}
+          <div className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg transition-opacity whitespace-nowrap border border-gray-600 z-50 ${
+            expanded ? 'hidden' : 'opacity-0 group-hover:opacity-100 pointer-events-none'
+          }`}>
+            My Profile
+          </div>
         </div>
 
         {/* Profile Expanded Section */}
@@ -201,12 +201,12 @@ export default function Sidebar() {
             <Settings className="w-5 h-5" />
             {expanded && <span className="font-medium">Settings</span>}
           </Link>
-          {/* Tooltip on hover when collapsed */}
-          {!expanded && (
-            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap border border-gray-600 z-50">
-              Settings
-            </div>
-          )}
+          {/* Tooltip on hover when collapsed - always rendered but hidden when expanded */}
+          <div className={`absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg whitespace-nowrap border border-gray-600 z-50 transition-opacity ${
+            expanded ? 'hidden' : 'opacity-0 group-hover:opacity-100 pointer-events-none'
+          }`}>
+            Settings
+          </div>
         </div>
       </div>
 
