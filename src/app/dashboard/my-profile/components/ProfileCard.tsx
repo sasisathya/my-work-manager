@@ -56,7 +56,7 @@ export default function ProfileCard({ profile }: { profile: ProfileData }) {
   return (
     <div className="space-y-6">
       {/* Main Profile Card */}
-      <div className="glass-card rounded-3xl p-8 overflow-hidden relative">
+      <div className="glass-card rounded-3xl p-6 md:p-8 overflow-hidden relative">
         {/* Background Animation */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-3xl animate-pulse" />
@@ -66,12 +66,12 @@ export default function ProfileCard({ profile }: { profile: ProfileData }) {
         {/* Content */}
         <div className="relative z-10">
           {/* Header Section */}
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-8 pb-8 border-b border-gray-600/30">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-8 mb-6 md:mb-8 pb-6 md:pb-8 border-b border-gray-600/30">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
-              <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-purple-400 via-pink-400 to-purple-600 flex items-center justify-center overflow-hidden animate-pulse">
-                <div className="w-28 h-28 rounded-xl bg-gray-900 flex items-center justify-center">
-                  <span className="text-5xl font-bold gradient-text">
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl bg-gradient-to-br from-purple-400 via-pink-400 to-purple-600 flex items-center justify-center overflow-hidden animate-pulse">
+                <div className="w-20 h-20 md:w-28 md:h-28 rounded-xl bg-gray-900 flex items-center justify-center">
+                  <span className="text-3xl md:text-5xl font-bold gradient-text">
                     {profile.personalInfo.name?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 </div>
@@ -81,28 +81,28 @@ export default function ProfileCard({ profile }: { profile: ProfileData }) {
             </div>
 
             {/* Profile Info */}
-            <div className="flex-1 text-center md:text-left">
-              <h1 className="text-4xl font-bold gradient-text mb-2">
+            <div className="flex-1 text-center md:text-left w-full">
+              <h1 className="text-2xl md:text-4xl font-bold gradient-text mb-2">
                 {profile.personalInfo.name || 'User Profile'}
               </h1>
               {profile.personalInfo.summary && (
-                <p className="text-gray-300 text-lg mb-4 max-w-2xl">
+                <p className="text-gray-300 text-sm md:text-lg mb-3 md:mb-4 max-w-2xl">
                   {profile.personalInfo.summary}
                 </p>
               )}
-              <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+              <div className="flex flex-wrap gap-2 md:gap-4 justify-center md:justify-start text-xs md:text-sm">
                 {profile.personalInfo.location && (
-                  <div className="text-sm text-gray-400">
+                  <div className="text-gray-400">
                     <span className="text-gray-500">📍</span> {profile.personalInfo.location}
                   </div>
                 )}
                 {profile.personalInfo.email && (
-                  <div className="text-sm text-gray-400">
+                  <div className="text-gray-400">
                     <span className="text-gray-500">📧</span> {profile.personalInfo.email}
                   </div>
                 )}
                 {profile.personalInfo.phone && (
-                  <div className="text-sm text-gray-400">
+                  <div className="text-gray-400">
                     <span className="text-gray-500">📱</span> {profile.personalInfo.phone}
                   </div>
                 )}
