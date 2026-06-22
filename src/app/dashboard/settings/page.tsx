@@ -36,7 +36,8 @@ function SettingsContent() {
   const [aiTestSuccess, setAiTestSuccess] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [activeTab, setActiveTab] = useState(highlightTab || 'jira');
+  const [activeTab, setActiveTab] = useState(highlightTab || 'resume'); // Default to 'resume' tab
+  const [resumeStatsLoading, setResumeStatsLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     jiraUrl: '',
@@ -62,10 +63,16 @@ function SettingsContent() {
   const [confluenceTestSuccess, setConfluenceTestSuccess] = useState(false);
   const [resumeStats, setResumeStats] = useState<any>(null);
   const [resumeUploading, setResumeUploading] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     loadConfig();
-    fetchResumeStatus();
+    const initResumeStatus = async () => {
+      setResumeStatsLoading(true);
+      await fetchResumeStatus();
+      setResumeStatsLoading(false);
+    };
+    initResumeStatus();
   }, []);
 
   const fetchResumeStatus = async () => {
@@ -73,11 +80,14 @@ function SettingsContent() {
       const response = await fetch('/api/profile/status');
       if (response.ok) {
         const data = await response.json();
+        console.log('Resume stats fetched:', data.stats);
         setResumeStats(data.stats);
+        return data.stats;
       }
     } catch (err) {
       console.error('Error fetching resume status:', err);
     }
+    return null;
   };
 
   useEffect(() => {
@@ -694,10 +704,12 @@ function SettingsContent() {
                     Uploading a new resume will automatically archive your current one with a timestamp.
                   </p>
                   <ResumeUploadForm onUploadComplete={async () => {
-                    setSuccess('Resume uploaded successfully! Previous version archived.');
+                    console.log('New resume uploaded, old one archived');
+                    setSuccess('Resume updated successfully! Previous version archived.');
                     await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for file system sync
-                    await fetchResumeStatus();
-                    setActiveTab('resume');
+                    console.log('Fetching updated resume status...');
+                    const stats = await fetchResumeStatus();
+                    console.log('Updated stats:', stats);
                   }} />
                 </div>
               </div>
@@ -716,13 +728,22 @@ function SettingsContent() {
                 </div>
 
                 <ResumeUploadForm onUploadComplete={async () => {
-                  console.log('Resume upload completed, fetching updated status');
-                  setSuccess('Resume uploaded successfully!');
-                  await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for file system sync
+                  console.log('Resume upload completed');
+                  setSuccess('Resume uploaded successfully! Refreshing...');
+
+                  // Wait for file system to sync
+                  await new Promise(resolve => setTimeout(resolve, 500));
+
+                  // Fetch updated status - this triggers setState which causes re-render
                   console.log('Fetching resume status...');
-                  await fetchResumeStatus();
-                  console.log('Resume status fetched');
-                  setActiveTab('resume');
+                  const stats = await fetchResumeStatus();
+                  console.log('Resume status:', stats);
+
+                  // Force component re-render by updating refresh trigger
+                  setRefreshTrigger(prev => prev + 1);
+
+                  // Stats should now show hasCurrentResume: true
+                  // The component will re-render automatically due to setResumeStats()
                 }} />
               </div>
             )}
