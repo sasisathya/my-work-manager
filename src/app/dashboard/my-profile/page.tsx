@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import ResumeUploader from './components/ResumeUploader';
 
 // Lazy load components for better performance
-const ProfileCard = lazy(() => import('./components/ProfileCard'));
+const AnimatedProfileCard = lazy(() => import('./components/AnimatedProfileCard'));
 const ProfileStats = lazy(() => import('./components/ProfileStats'));
 
 // Loading skeleton component
@@ -118,14 +118,9 @@ export default function MyProfilePage() {
         </div>
       ) : profileData ? (
         <div className="space-y-6">
-          {/* Profile Card with 3D Animation - Lazy loaded */}
+          {/* Animated Profile Card with 3D Effects - Lazy loaded */}
           <Suspense fallback={<ProfileSkeleton />}>
-            <ProfileCard profile={profileData} />
-          </Suspense>
-
-          {/* Profile Statistics - Lazy loaded */}
-          <Suspense fallback={<ProfileSkeleton />}>
-            <ProfileStats profile={profileData} />
+            <AnimatedProfileCard profile={profileData} />
           </Suspense>
 
           {/* Raw JSON Data Viewer */}

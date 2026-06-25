@@ -65,7 +65,13 @@
       "Bash(.gitignore)",
       "Bash(git rm:*)",
       "Bash(npm uninstall:*)",
-      "Bash(git -C /Users/sajja.krishna/Desktop/sasi/my-work-manager status)"
+      "Bash(git -C /Users/sajja.krishna/Desktop/sasi/my-work-manager status)",
+      "Bash(filePath=\"/Users/sajja.krishna/Desktop/sasi/my-work-manager/data/profiles/resume-current.pdf\" curl -s -X POST http://localhost:2999/api/profile/parse -H \"Content-Type: application/json\" -d \"{\"\"filePath\"\":\"\"$filePath\"\"}\")",
+      "Bash(filePath=\"/Users/sajja.krishna/Desktop/sasi/my-work-manager/data/profiles/resume-current.pdf\")",
+      "WebFetch(domain:yash-chauhan.vercel.app)",
+      "WebFetch(domain:github.com)",
+      "Bash(git clone:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []
