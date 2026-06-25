@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Database, GitBranch, FileEdit, Zap, Settings, ArrowRight, StickyNote, Cloud, Container } from 'lucide-react';
+import { Database, GitBranch, FileEdit, Zap, Settings, ArrowRight, StickyNote, Cloud, Container, Palette } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -164,6 +164,29 @@ export default function DashboardPage() {
             View & edit files
           </p>
           <div className="flex items-center gap-1 text-gray-300 font-semibold text-xs">
+            <span>Open</span>
+            <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </button>
+
+        {/* Visual Editor Card */}
+        <button
+          onClick={() => router.push('/dashboard/visual-editor')}
+          className="glass-card rounded-2xl p-4 glow hover:scale-105 transition-all duration-300 text-left group cursor-pointer"
+        >
+          <div className="relative mb-3">
+            <div className="absolute inset-0 blur-2xl bg-pink-500/30 group-hover:bg-pink-500/50 transition-all" />
+            <div className="relative bg-pink-500/20 rounded-xl p-3 group-hover:bg-pink-500/30 transition-all">
+              <Palette className="w-8 h-8 text-pink-400" />
+            </div>
+          </div>
+          <h2 className="text-sm font-bold text-white mb-1 group-hover:gradient-text transition-all">
+            Visual Editor
+          </h2>
+          <p className="text-gray-400 text-xs mb-2">
+            Design & create graphics
+          </p>
+          <div className="flex items-center gap-1 text-pink-400 font-semibold text-xs">
             <span>Open</span>
             <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
           </div>
