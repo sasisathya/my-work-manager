@@ -6,11 +6,13 @@ import { CanvasElement } from '@/lib/canvas/types';
 interface ElementRendererProps {
   element: CanvasElement;
   isSelected: boolean;
+  onResizeStart?: (e: any, handle: string) => void;
 }
 
 export default function ElementRenderer({
   element,
   isSelected,
+  onResizeStart,
 }: ElementRendererProps) {
   const { position, size, style, type, content, imageSrc } = element;
   const { x, y } = position;
@@ -113,27 +115,28 @@ export default function ElementRenderer({
 
           {/* Resize handles */}
           {[
-            { x: x - 5, y: y - 5, cursor: 'nw-resize' }, // top-left
-            { x: x + width / 2 - 5, y: y - 5, cursor: 'n-resize' }, // top-middle
-            { x: x + width - 5, y: y - 5, cursor: 'ne-resize' }, // top-right
-            { x: x - 5, y: y + height / 2 - 5, cursor: 'w-resize' }, // middle-left
-            { x: x + width - 5, y: y + height / 2 - 5, cursor: 'e-resize' }, // middle-right
-            { x: x - 5, y: y + height - 5, cursor: 'sw-resize' }, // bottom-left
-            { x: x + width / 2 - 5, y: y + height - 5, cursor: 's-resize' }, // bottom-middle
-            { x: x + width - 5, y: y + height - 5, cursor: 'se-resize' }, // bottom-right
-          ].map((handle, idx) => (
+            { x: x - 5, y: y - 5, cursor: 'nw-resize', handle: 'nw' }, // top-left
+            { x: x + width / 2 - 5, y: y - 5, cursor: 'n-resize', handle: 'n' }, // top-middle
+            { x: x + width - 5, y: y - 5, cursor: 'ne-resize', handle: 'ne' }, // top-right
+            { x: x - 5, y: y + height / 2 - 5, cursor: 'w-resize', handle: 'w' }, // middle-left
+            { x: x + width - 5, y: y + height / 2 - 5, cursor: 'e-resize', handle: 'e' }, // middle-right
+            { x: x - 5, y: y + height - 5, cursor: 'sw-resize', handle: 'sw' }, // bottom-left
+            { x: x + width / 2 - 5, y: y + height - 5, cursor: 's-resize', handle: 's' }, // bottom-middle
+            { x: x + width - 5, y: y + height - 5, cursor: 'se-resize', handle: 'se' }, // bottom-right
+          ].map((h, idx) => (
             <rect
               key={idx}
-              x={handle.x}
-              y={handle.y}
+              x={h.x}
+              y={h.y}
               width="10"
               height="10"
               fill="#3b82f6"
               stroke="#ffffff"
               strokeWidth="1"
-              className="cursor-pointer"
-              style={{ cursor: handle.cursor }}
+              className="cursor-pointer hover:fill-pink-400"
+              style={{ cursor: h.cursor }}
               pointerEvents="auto"
+              onMouseDown={(e) => onResizeStart?.(e, h.handle)}
             />
           ))}
         </g>

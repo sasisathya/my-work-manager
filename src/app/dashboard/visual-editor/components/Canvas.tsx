@@ -10,10 +10,13 @@ interface CanvasProps {
   onElementSelect?: (elementId: string | null) => void;
 }
 
+type ResizeHandle = 'nw' | 'n' | 'ne' | 'w' | 'e' | 'sw' | 's' | 'se' | null;
+
 export default function Canvas({ onElementSelect }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [isDraggingElement, setIsDraggingElement] = useState(false);
+  const [resizingHandle, setResizingHandle] = useState<ResizeHandle>(null);
 
   const {
     project,
@@ -21,6 +24,7 @@ export default function Canvas({ onElementSelect }: CanvasProps) {
     selectedElementId,
     selectElement,
     moveElement,
+    updateElement,
   } = useCanvasStore();
 
   if (!project) {
@@ -69,7 +73,7 @@ export default function Canvas({ onElementSelect }: CanvasProps) {
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
-      if (!isDraggingElement || !dragStart || !selectedElementId) return;
+      if (!dragStart || !selectedElementId) return;
 
       const svg = svgRef.current;
       if (!svg) return;
@@ -84,18 +88,56 @@ export default function Canvas({ onElementSelect }: CanvasProps) {
       const element = elements.find((el) => el.id === selectedElementId);
       if (!element) return;
 
-      const newX = Math.max(0, element.position.x + deltaX);
-      const newY = Math.max(0, element.position.y + deltaY);
+      // Handle element dragging
+      if (isDraggingElement && !resizingHandle) {
+        const newX = Math.max(0, element.position.x + deltaX);
+        const newY = Math.max(0, element.position.y + deltaY);
+        moveElement(selectedElementId, newX, newY);
+      }
 
-      moveElement(selectedElementId, newX, newY);
+      // Handle resize
+      if (resizingHandle) {
+        let newWidth = element.size.width;
+        let newHeight = element.size.height;
+        let newX = element.position.x;
+        let newY = element.position.y;
+
+        // Update size and position based on which handle is being dragged
+        if (resizingHandle.includes('e')) newWidth = Math.max(30, element.size.width + deltaX);
+        if (resizingHandle.includes('w')) {
+          newWidth = Math.max(30, element.size.width - deltaX);
+          newX = element.position.x + deltaX;
+        }
+        if (resizingHandle.includes('s')) newHeight = Math.max(30, element.size.height + deltaY);
+        if (resizingHandle.includes('n')) {
+          newHeight = Math.max(30, element.size.height - deltaY);
+          newY = element.position.y + deltaY;
+        }
+
+        updateElement(selectedElementId, {
+          position: { x: newX, y: newY },
+          size: { width: newWidth, height: newHeight },
+        });
+      }
+
       setDragStart({ x: currentX, y: currentY });
     },
-    [isDraggingElement, dragStart, selectedElementId, elements, moveElement]
+    [isDraggingElement, dragStart, selectedElementId, resizingHandle, elements, moveElement, updateElement]
   );
 
   const handleMouseUp = () => {
     setIsDraggingElement(false);
     setDragStart(null);
+    setResizingHandle(null);
+  };
+
+  const handleResizeStart = (e: any, handle: string) => {
+    e.stopPropagation();
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    setDragStart({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    setResizingHandle(handle as ResizeHandle);
   };
 
   return (
@@ -144,6 +186,7 @@ export default function Canvas({ onElementSelect }: CanvasProps) {
                 <ElementRenderer
                   element={element}
                   isSelected={selectedElementId === element.id}
+                  onResizeStart={handleResizeStart}
                 />
               </g>
             ))}
