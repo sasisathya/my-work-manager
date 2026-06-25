@@ -69,39 +69,43 @@ export default function ElementLibrary() {
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center gap-2 mb-1">
           <Shapes className="w-5 h-5 text-blue-400" />
-          <h3 className="font-semibold text-white">Element Library</h3>
+          <h3 className="font-semibold text-white">Elements</h3>
         </div>
-        <p className="text-xs text-gray-400">Click to add elements to canvas</p>
+        <p className="text-xs text-gray-400">Click icons to add</p>
       </div>
 
-      {/* Elements Grid */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {ELEMENTS.map((element) => {
-          const Icon = element.icon;
-          return (
-            <button
-              key={element.type}
-              onClick={() => handleAddElement(element.type)}
-              className="w-full flex items-start gap-3 p-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-left group"
-              title={element.description}
-            >
-              <Icon className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-white text-sm">{element.label}</p>
-                <p className="text-xs text-gray-400 truncate">{element.description}</p>
-              </div>
-            </button>
-          );
-        })}
+      {/* Element Icons Grid - Compact */}
+      <div className="p-4">
+        <div className="bg-gray-700 rounded-lg p-4 grid grid-cols-5 gap-3">
+          {ELEMENTS.map((element) => {
+            const Icon = element.icon;
+            return (
+              <button
+                key={element.type}
+                onClick={() => handleAddElement(element.type)}
+                className="flex flex-col items-center justify-center p-3 rounded-lg bg-gray-600 hover:bg-blue-600 transition-all duration-200 group"
+                title={element.description}
+              >
+                <Icon className="w-6 h-6 text-blue-300 group-hover:text-white group-hover:scale-125 transition-all" />
+                <span className="text-xs text-gray-300 group-hover:text-white mt-1.5 text-center font-semibold">
+                  {element.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
+
+      {/* Spacer */}
+      <div className="flex-1" />
 
       {/* Info section */}
       <div className="border-t border-gray-700 p-4 text-xs text-gray-400">
-        <p className="mb-2 font-semibold text-gray-300">Tips:</p>
-        <ul className="space-y-1 list-disc list-inside">
-          <li>Drag elements on canvas to move</li>
-          <li>Click elements to select</li>
-          <li>Use Inspector to edit properties</li>
+        <p className="mb-2 font-semibold text-gray-300">Quick Tips:</p>
+        <ul className="space-y-1 list-disc list-inside text-xs">
+          <li>Click icon to add shape</li>
+          <li>Drag on canvas to move</li>
+          <li>Edit in properties panel</li>
         </ul>
       </div>
     </div>
