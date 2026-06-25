@@ -225,6 +225,26 @@ export default function PropertiesInspector() {
           </div>
         </div>
 
+        {/* Line Style Properties */}
+        {selectedElement.type === 'line' && (
+          <div>
+            <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider block mb-2">
+              Line Style
+            </label>
+            <select
+              value={selectedElement.lineStyle || 'straight'}
+              onChange={(e) => handleUpdateProperty('lineStyle', e.target.value)}
+              className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            >
+              <option value="straight">Straight Line</option>
+              <option value="l-shape">L-Shape (⌐ shape)</option>
+              <option value="reverse-l">Reverse L (⌞ shape)</option>
+              <option value="z-shape">Z-Shape (7 shape)</option>
+              <option value="reverse-z">Reverse Z (⌐ shape)</option>
+            </select>
+          </div>
+        )}
+
         {/* Text Properties */}
         {selectedElement.type === 'text' && (
           <>

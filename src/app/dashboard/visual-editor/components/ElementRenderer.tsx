@@ -51,15 +51,83 @@ export default function ElementRenderer({
         );
 
       case 'line':
-        return (
-          <line
-            x1={x}
-            y1={y}
-            x2={x + width}
-            y2={y + height}
-            {...commonProps}
-          />
-        );
+        // Render different line styles
+        const lineStyle = element.lineStyle || 'straight';
+        const midX = x + width / 2;
+        const midY = y + height / 2;
+
+        switch (lineStyle) {
+          case 'straight':
+            // Diagonal line
+            return (
+              <line
+                x1={x}
+                y1={y}
+                x2={x + width}
+                y2={y + height}
+                {...commonProps}
+              />
+            );
+
+          case 'l-shape':
+            // L-shape: horizontal then vertical
+            return (
+              <polyline
+                points={`${x},${y} ${x + width},${y} ${x + width},${y + height}`}
+                stroke={style.stroke}
+                strokeWidth={style.strokeWidth}
+                fill="none"
+                opacity={style.opacity}
+              />
+            );
+
+          case 'reverse-l':
+            // Reverse L-shape: vertical then horizontal
+            return (
+              <polyline
+                points={`${x},${y} ${x},${y + height} ${x + width},${y + height}`}
+                stroke={style.stroke}
+                strokeWidth={style.strokeWidth}
+                fill="none"
+                opacity={style.opacity}
+              />
+            );
+
+          case 'z-shape':
+            // Z-shape (7-shape): horizontal, diagonal, horizontal
+            return (
+              <polyline
+                points={`${x},${y} ${x + width},${y} ${x},${y + height} ${x + width},${y + height}`}
+                stroke={style.stroke}
+                strokeWidth={style.strokeWidth}
+                fill="none"
+                opacity={style.opacity}
+              />
+            );
+
+          case 'reverse-z':
+            // Reverse Z-shape: starts right, goes left
+            return (
+              <polyline
+                points={`${x + width},${y} ${x},${y} ${x + width},${y + height} ${x},${y + height}`}
+                stroke={style.stroke}
+                strokeWidth={style.strokeWidth}
+                fill="none"
+                opacity={style.opacity}
+              />
+            );
+
+          default:
+            return (
+              <line
+                x1={x}
+                y1={y}
+                x2={x + width}
+                y2={y + height}
+                {...commonProps}
+              />
+            );
+        }
 
       case 'text':
         return (

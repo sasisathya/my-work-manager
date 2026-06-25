@@ -3,6 +3,7 @@
  */
 
 export type ElementType = 'rectangle' | 'circle' | 'line' | 'text' | 'image' | 'group';
+export type LineStyle = 'straight' | 'l-shape' | 'reverse-l' | 'z-shape' | 'reverse-z';
 
 export interface ElementPosition {
   x: number;
@@ -38,6 +39,7 @@ export interface CanvasElement {
   locked?: boolean;
   visible?: boolean;
   parent?: string; // For grouped elements
+  lineStyle?: LineStyle; // For line elements
 }
 
 export interface CanvasProject {
