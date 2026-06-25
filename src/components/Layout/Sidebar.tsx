@@ -19,7 +19,8 @@ import {
   Container,
   User,
   Upload,
-  ChevronDown
+  ChevronDown,
+  Palette
 } from 'lucide-react';
 import { useSidebar } from '@/contexts/SidebarContext';
 
@@ -33,6 +34,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'My Tasks', href: '/dashboard/tasks', icon: StickyNote },
+  { name: 'Visual Editor', href: '/dashboard/visual-editor', icon: Palette },
   { name: 'GCloud/K8s', href: '/dashboard/gcloud', icon: Zap },
   { name: 'Docker/Kafka', href: '/dashboard/docker', icon: Container },
   { name: 'Jira Tickets', href: '/dashboard/jira', icon: ListTodo },
