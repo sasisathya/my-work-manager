@@ -80,17 +80,23 @@ export default function ElementLibrary() {
           {ELEMENTS.map((element) => {
             const Icon = element.icon;
             return (
-              <button
-                key={element.type}
-                onClick={() => handleAddElement(element.type)}
-                className="flex flex-col items-center justify-center p-3 rounded-lg bg-gray-600 hover:bg-blue-600 transition-all duration-200 group"
-                title={element.description}
-              >
-                <Icon className="w-6 h-6 text-blue-300 group-hover:text-white group-hover:scale-125 transition-all" />
-                <span className="text-xs text-gray-300 group-hover:text-white mt-1.5 text-center font-semibold">
+              <div key={element.type} className="relative group">
+                <button
+                  onClick={() => handleAddElement(element.type)}
+                  className="flex flex-col items-center justify-center p-3 rounded-lg bg-gray-600 hover:bg-blue-600 transition-all duration-200 w-full"
+                  title={element.description}
+                >
+                  <Icon className="w-6 h-6 text-blue-300 group-hover:text-white group-hover:scale-125 transition-all" />
+                </button>
+
+                {/* Tooltip on hover */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs font-semibold rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-gray-600">
                   {element.label}
-                </span>
-              </button>
+                </div>
+
+                {/* Tooltip arrow */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 border-r border-b border-gray-600 rotate-45 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50" style={{marginBottom: '3px'}} />
+              </div>
             );
           })}
         </div>
